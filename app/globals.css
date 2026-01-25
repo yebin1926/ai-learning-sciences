@@ -2,10 +2,14 @@
 
 :root {
   /* Friendly pastel palette */
-  --background: #fdfbf7; /* Warm white/cream */
-  --foreground: #1e293b; /* Slate 800 */
-  --primary: #6366f1; /* Indigo 500 */
-  --secondary: #ec4899; /* Pink 500 */
+  --background: #fdfbf7;
+  /* Warm white/cream */
+  --foreground: #1e293b;
+  /* Slate 800 */
+  --primary: #6366f1;
+  /* Indigo 500 */
+  --secondary: #ec4899;
+  /* Pink 500 */
 }
 
 @theme inline {
@@ -20,4 +24,3 @@ body {
   font-family: var(--font-sans), sans-serif;
   min-height: 100vh;
 }
-

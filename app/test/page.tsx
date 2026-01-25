@@ -99,10 +99,10 @@ export default function TestPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
                             className={`overflow-hidden rounded-2xl border bg-white/60 p-6 shadow-sm backdrop-blur-md ${submitted
-                                    ? selectedAnswers[q.id] === q.answer
-                                        ? "border-green-200 bg-green-50/50"
-                                        : "border-pink-200 bg-pink-50/50"
-                                    : "border-white/40"
+                                ? selectedAnswers[q.id] === q.answer
+                                    ? "border-green-200 bg-green-50/50"
+                                    : "border-pink-200 bg-pink-50/50"
+                                : "border-white/40"
                                 }`}
                         >
                             <h3 className="mb-4 text-xl font-semibold text-slate-800">

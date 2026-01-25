@@ -14,14 +14,10 @@ export default function Home() {
         className="mb-12 max-w-2xl"
       >
         <h1 className="mb-4 text-5xl font-bold tracking-tight text-slate-800 drop-shadow-sm md:text-7xl">
-          Main Title <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">
-            AI 학습도구
-          </span>
+          Main Title
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-slate-600">
-          Your friendly platform to learn literature and language, and test your
-          skills.
+          AI 학습도구
         </p>
       </motion.div>
 
