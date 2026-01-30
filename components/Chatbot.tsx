@@ -16,9 +16,10 @@ interface ChatbotProps {
     messages: Message[];
     onSendMessage: (message: string) => Promise<void> | void;
     inputEnabled: boolean;
+    isLoading?: boolean;
     actionNode?: React.ReactNode;
     placeholder?: string;
-    className?: string; // Add className prop for better layout control
+    className?: string;
 }
 
 export default function Chatbot({
@@ -28,6 +29,7 @@ export default function Chatbot({
     actionNode,
     placeholder = "Type your reflection here...",
     className = "",
+    isLoading = false,
 }: ChatbotProps) {
     const [inputValue, setInputValue] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,7 @@ export default function Chatbot({
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, isLoading]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -94,6 +96,38 @@ export default function Chatbot({
                             </div>
                         </motion.div>
                     ))}
+                    {isLoading && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex w-full justify-start"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 border border-indigo-100 shadow-sm">
+                                    <Bot size={14} />
+                                </div>
+                                <div className="rounded-2xl rounded-tl-sm border border-indigo-50 bg-white px-4 py-3 shadow-sm">
+                                    <div className="flex space-x-1">
+                                        <motion.div
+                                            className="h-2 w-2 rounded-full bg-indigo-400"
+                                            animate={{ y: [0, -5, 0] }}
+                                            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
+                                        />
+                                        <motion.div
+                                            className="h-2 w-2 rounded-full bg-indigo-400"
+                                            animate={{ y: [0, -5, 0] }}
+                                            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                                        />
+                                        <motion.div
+                                            className="h-2 w-2 rounded-full bg-indigo-400"
+                                            animate={{ y: [0, -5, 0] }}
+                                            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
                 <div ref={messagesEndRef} />
             </div>
@@ -110,13 +144,13 @@ export default function Chatbot({
                             type="text"
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
-                            placeholder={inputEnabled ? placeholder : "Waiting for next question..."}
-                            disabled={!inputEnabled}
+                            placeholder={isLoading ? "Processing response..." : (inputEnabled ? placeholder : "Waiting for next question...")}
+                            disabled={!inputEnabled || isLoading}
                             className="peer flex-1 rounded-full border border-slate-200 bg-slate-50 py-3 pl-5 pr-12 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60 transition-all"
                         />
                         <button
                             type="submit"
-                            disabled={!inputValue.trim() || !inputEnabled}
+                            disabled={!inputValue.trim() || !inputEnabled || isLoading}
                             className="absolute right-2 rounded-full bg-indigo-600 p-2 text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:hover:scale-100"
                         >
                             <Send size={16} strokeWidth={2.5} />

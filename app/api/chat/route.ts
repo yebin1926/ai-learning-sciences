@@ -24,6 +24,7 @@ export async function POST(req: Request) {
 Your goal is to help the student learn. 
 - Be encouraging and concise.
 - If the user asks a general question, answer it helpfully.
+- Use **Markdown** formatting (bold, lists, etc.) to make your responses engaging and structured.
 `;
 
         // Dynamic System Prompt additions based on Context
