@@ -23,9 +23,10 @@ interface QuestionHistory {
 
 interface LearnSessionProps {
     participantId: string;
+    mode: 'A' | 'B';
 }
 
-export default function LearnSession({ participantId }: LearnSessionProps) {
+export default function LearnSession({ participantId, mode }: LearnSessionProps) {
     const router = useRouter();
 
     // --- Learn Page State ---
@@ -87,6 +88,7 @@ export default function LearnSession({ participantId }: LearnSessionProps) {
                     participantId,
                     type: 'learn',
                     data: {
+                        group: mode, // Log A or B
                         history,
                         chatMessages,
                         completedAt: new Date().toISOString()
@@ -105,7 +107,7 @@ export default function LearnSession({ participantId }: LearnSessionProps) {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages, context }),
+                body: JSON.stringify({ messages, context, mode }), // Pass mode
             });
             const data = await response.json();
             if (data.message) {
@@ -244,12 +246,14 @@ export default function LearnSession({ participantId }: LearnSessionProps) {
 
             if (newStreak >= 2) {
                 console.log("Streak >= 2");
-                console.log("[L171] Calling Chatbot: Success Feedback");
-                callChatbotAPI([], {
-                    type: 'success_feedback',
-                    question_text: currentQuestion.question,
-                    correct_answer: currentQuestion.correct_answer
-                });
+                if (mode === 'B') {
+                    console.log("[L171] Calling Chatbot: Success Feedback");
+                    callChatbotAPI([], {
+                        type: 'success_feedback',
+                        question_text: currentQuestion.question,
+                        correct_answer: currentQuestion.correct_answer
+                    });
+                }
                 setConsecutiveCorrect(0);
             }
 
@@ -264,14 +268,16 @@ export default function LearnSession({ participantId }: LearnSessionProps) {
                 setAttemptState('reflection_pending');
                 setReflectionRequired(true);
 
-                console.log("[L190] Calling Chatbot: Failure Reflection 1");
-                callChatbotAPI([], {
-                    type: 'failure_reflection_1',
-                    question_text: currentQuestion.question,
-                    user_answer: answerContent,
-                    correct_answer: currentQuestion.correct_answer,
-                    explanation: "Review the passage carefully."
-                });
+                if (mode === 'B') {
+                    console.log("[L190] Calling Chatbot: Failure Reflection 1");
+                    callChatbotAPI([], {
+                        type: 'failure_reflection_1',
+                        question_text: currentQuestion.question,
+                        user_answer: answerContent,
+                        correct_answer: currentQuestion.correct_answer,
+                        explanation: "Review the passage carefully."
+                    });
+                }
             } else if (attemptState === 'retrying') {
                 // Second Fail -> LOGICALLY FAIL
                 console.log("[L187] 2nd Failure Logic START - Setting isCorrect=false");
@@ -295,14 +301,16 @@ export default function LearnSession({ participantId }: LearnSessionProps) {
                     return newState;
                 });
 
-                console.log("[L220] Calling Chatbot: Failure Explanation Request");
-                callChatbotAPI([], {
-                    type: 'failure_explanation_request',
-                    question_text: currentQuestion.question,
-                    user_answer: answerContent,
-                    correct_answer: currentQuestion.correct_answer,
-                    explanation: "Review the passage and explain why the user_answer is incorrect and why the correct_answer is correct, but keep it short and concise so that it's easy to understand."
-                });
+                if (mode === 'B') {
+                    console.log("[L220] Calling Chatbot: Failure Explanation Request");
+                    callChatbotAPI([], {
+                        type: 'failure_explanation_request',
+                        question_text: currentQuestion.question,
+                        user_answer: answerContent,
+                        correct_answer: currentQuestion.correct_answer,
+                        explanation: "Review the passage and explain why the user_answer is incorrect and why the correct_answer is correct, but keep it short and concise so that it's easy to understand."
+                    });
+                }
             } else {
                 console.log(`[L211] Unexpected attemptState in incorrect branch: ${attemptState}`);
             }

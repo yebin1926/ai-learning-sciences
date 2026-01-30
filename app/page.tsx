@@ -21,36 +21,46 @@ export default function Home() {
         </p>
       </motion.div>
 
-      <div className="grid w-full max-w-3xl gap-8 md:grid-cols-2">
-        <Link href="/learn" className="group">
+      <div className="grid w-full max-w-5xl gap-6 md:grid-cols-3">
+        {/* Learn A */}
+        <Link href="/learn-a" className="group">
           <motion.div
             whileHover={{ scale: 1.05, y: -5 }}
             whileTap={{ scale: 0.95 }}
-            className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-3xl border border-white/20 bg-white/40 p-8 shadow-xl backdrop-blur-xl transition-all duration-300 hover:bg-white/60 hover:shadow-2xl hover:shadow-blue-200/50"
+            className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-3xl border border-white/20 bg-white/40 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:bg-white/60 hover:shadow-2xl hover:shadow-green-200/50"
           >
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-400 to-cyan-300 text-white shadow-lg transition-transform duration-300 group-hover:rotate-6">
-              <BookOpen size={40} strokeWidth={2.5} />
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-green-400 to-emerald-300 text-white shadow-lg transition-transform duration-300 group-hover:rotate-6">
+              <BookOpen size={32} strokeWidth={2.5} />
             </div>
-            <h2 className="text-3xl font-bold text-slate-800">Learn</h2>
-            <p className="mt-2 text-slate-600">
-              Explore lessons & stories
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800">Learn A</h2>
           </motion.div>
         </Link>
 
+        {/* Learn B */}
+        <Link href="/learn-b" className="group">
+          <motion.div
+            whileHover={{ scale: 1.05, y: -5 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-3xl border border-white/20 bg-white/40 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:bg-white/60 hover:shadow-2xl hover:shadow-blue-200/50"
+          >
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-400 to-cyan-300 text-white shadow-lg transition-transform duration-300 group-hover:rotate-6">
+              <BookOpen size={32} strokeWidth={2.5} />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">Learn B</h2>
+          </motion.div>
+        </Link>
+
+        {/* Test */}
         <Link href="/test" className="group">
           <motion.div
             whileHover={{ scale: 1.05, y: -5 }}
             whileTap={{ scale: 0.95 }}
-            className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-3xl border border-white/20 bg-white/40 p-8 shadow-xl backdrop-blur-xl transition-all duration-300 hover:bg-white/60 hover:shadow-2xl hover:shadow-pink-200/50"
+            className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-3xl border border-white/20 bg-white/40 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:bg-white/60 hover:shadow-2xl hover:shadow-pink-200/50"
           >
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-pink-400 to-rose-300 text-white shadow-lg transition-transform duration-300 group-hover:-rotate-6">
-              <PenTool size={40} strokeWidth={2.5} />
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-pink-400 to-rose-300 text-white shadow-lg transition-transform duration-300 group-hover:-rotate-6">
+              <PenTool size={32} strokeWidth={2.5} />
             </div>
-            <h2 className="text-3xl font-bold text-slate-800">Test</h2>
-            <p className="mt-2 text-slate-600">
-              Challenge yourself
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800">Test</h2>
           </motion.div>
         </Link>
       </div>

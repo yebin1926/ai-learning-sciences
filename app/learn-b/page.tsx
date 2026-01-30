@@ -4,7 +4,7 @@ import { useState } from "react";
 import GuideOverlay from "@/components/GuideOverlay";
 import LearnSession from "@/components/LearnSession";
 
-export default function LearnPage() {
+export default function LearnPageB() {
     const [showGuide, setShowGuide] = useState<boolean>(true);
     const [participantId, setParticipantId] = useState<string>("");
 

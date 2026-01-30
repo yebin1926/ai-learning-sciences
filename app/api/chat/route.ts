@@ -8,29 +8,37 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
     try {
-        const { messages, context } = await req.json();
+        const { messages, context, mode } = await req.json();
 
         // 1. Validation
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Messages array is required' }, { status: 400 });
         }
 
-        // 2. Logging Setup (Simplified)
+        // 2. Logging Setup
         const timestamp = new Date().toISOString();
-        const model = "gpt-5-mini";
+        const model = "gpt-5-mini"; // or whatever model identifier
 
-        // 3. System Prompt Construction
-        let systemPrompt = `You are a helpful and friendly AI Tutor for an English learning app.
+        let systemPrompt = "";
+
+        if (mode === 'A') {
+            // MODE A: Basic Helper (No pedagogical scaffolding)
+            systemPrompt = `You are a helpful assistant. 
+answer questions if the user types in a question. 
+Do not provide unsolicited feedback.`;
+        } else {
+            // MODE B: Scaffolded Tutor (Default)
+            systemPrompt = `You are a helpful and friendly AI Tutor for an English learning app.
 Your goal is to help the student learn. 
 - Be encouraging and concise.
 - If the user asks a general question, answer it helpfully.
 - Use **Markdown** formatting (bold, lists, etc.) to make your responses engaging and structured.
 `;
 
-        // Dynamic System Prompt additions based on Context
-        if (context) {
-            if (context.type === 'failure_reflection_1') {
-                systemPrompt += `
+            // Dynamic Context for Mode B Only
+            if (context) {
+                if (context.type === 'failure_reflection_1') {
+                    systemPrompt += `
 CRITICAL INSTRUCTION: The user just answered INCORRECTLY (Attempt 1).
 Question: "${context.question_text}"
 User Answer: "${context.user_answer}"
@@ -40,22 +48,23 @@ Your IMMEDIATE goal is to help them reflect.
 DO NOT give the answer.
 Ask a short, specific question about why they chose "${context.user_answer}" or point out a specific detail in the question.
 `;
-            } else if (context.type === 'failure_explanation_request') {
-                systemPrompt += `
+                } else if (context.type === 'failure_explanation_request') {
+                    systemPrompt += `
 CRITICAL INSTRUCTION: The user failed twice. The correct answer is "${context.correct_answer}".
 Explanation: "${context.explanation}"
 
 The user has defined the correct answer now.
 Ask them to explain in their own words WHY "${context.correct_answer}" is the correct answer based on your explanation.
 `;
-            } else if (context.type === 'success_feedback') {
-                systemPrompt += `
+                } else if (context.type === 'success_feedback') {
+                    systemPrompt += `
 INSTRUCTION: The user just answered CORRECTLY!
 Question: "${context.question_text}"
 Answer: "${context.correct_answer}"
 
 Give a VERY BRIEF positive reinforcement.
 `;
+                }
             }
         }
 
