@@ -82,64 +82,112 @@ const learningContent: LearningContent[] = [
 export default function LearnPage() {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
-    const [isAnswered, setIsAnswered] = useState<boolean>(false);
+    const [isAnswered, setIsAnswered] = useState<boolean>(false); // True when question is fully "Done" (correct or failed twice)
     const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const [attempts, setAttempts] = useState<number>(0);
     const [lessonComplete, setLessonComplete] = useState<boolean>(false);
+
+    // New Attempt Logic
+    // 'first_try': Initial state
+    // 'reflection_pending': Failed once, waiting for chat reflection
+    // 'retrying': Chat satisfied, user can try again
+    // 'explanation_pending': Failed twice, waiting for explanation reflection
+    // 'completed': Done (Correct or Explanation Reflection satisfied)
+    const [attemptState, setAttemptState] = useState<'first_try' | 'reflection_pending' | 'retrying' | 'explanation_pending' | 'completed'>('first_try');
 
     // Chatbot State
     const [chatMessages, setChatMessages] = useState<Message[]>([
-        { id: "intro", role: "bot", text: "Hi! I'm here to help you reflect on your learning. Let's get started!" }
+        { id: "intro", role: "bot", text: "Hi! I'm here to help you reflect on your learning. You can ask me questions anytime!" }
     ]);
-    const [chatStep, setChatStep] = useState<"idle" | "reflection" | "feedback" | "completed">("idle");
+    const [reflectionRequired, setReflectionRequired] = useState<boolean>(false);
+    const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
 
     const currentQuestion = learningContent[currentIndex];
     const isLastQuestion = currentIndex === learningContent.length - 1;
     const maxAttempts = 3;
 
-    // Trigger Chatbot logic when question is answered (correctly or max attempts reached)
-    useEffect(() => {
-        if (isAnswered) {
-            const questionNumber = currentIndex + 1;
-            const isOdd = questionNumber % 2 !== 0;
-
-            // Slight delay for natural feel
-            const timer = setTimeout(() => {
-                if (isOdd) {
-                    // Odd: Reflection
-                    setChatMessages(prev => [
-                        ...prev,
-                        { id: `q${questionNumber}-reflection`, role: "bot", text: "What areas do you think you should work on next to improve your English?" }
-                    ]);
-                    setChatStep("reflection");
-                } else {
-                    // Even: Feedback
-                    setChatMessages(prev => [
-                        ...prev,
-                        { id: `q${questionNumber}-feedback`, role: "bot", text: `Nice — you identified the key clue: "${currentQuestion.clue}". Now check the grammar rules again before locking in your answer next time.` }
-                    ]);
-                    setChatStep("feedback");
-                }
-            }, 1000);
-
-            return () => clearTimeout(timer);
+    // Helper to call Chat API
+    const callChatbotAPI = async (messages: Message[], context?: any) => {
+        setIsChatLoading(true);
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages,
+                    context
+                }),
+            });
+            const data = await response.json();
+            if (data.message) {
+                setChatMessages(prev => [...prev, { id: Date.now().toString(), role: "bot", text: data.message.content }]);
+            }
+        } catch (error) {
+            console.error("Chat API Error:", error);
+            setChatMessages(prev => [...prev, { id: "error", role: "bot", text: "Sorry, I'm having trouble connecting right now." }]);
+        } finally {
+            setIsChatLoading(false);
         }
-    }, [isAnswered, currentIndex, currentQuestion.clue]);
+    };
+
+    // Trigger Chatbot logic when question is answered
+    // (Removed redundant useEffect - logic moved to handleOptionClick to prevent double-firing)
+    useEffect(() => {
+        if (isAnswered && !isCorrect) {
+            // Only ensure reflection is required if incorrect (safety check)
+            setReflectionRequired(true);
+        }
+    }, [isAnswered, isCorrect]);
 
     const handleOptionClick = (option: string) => {
-        if (isAnswered) return;
+        if (isAnswered || attemptState === 'reflection_pending' || attemptState === 'explanation_pending') return;
 
         setSelectedOption(option);
+        const correct = option === currentQuestion.answer;
 
-        if (option === currentQuestion.answer) {
+        if (correct) {
             setIsCorrect(true);
             setIsAnswered(true);
+            setAttemptState('completed');
+
+            // Trigger Success Praise
+            // Pass empty history [] to force bot to focus ONLY on the current success context, 
+            // ignoring previous random chat (e.g. "hamsters").
+            callChatbotAPI([], {
+                type: 'success_feedback',
+                question_text: currentQuestion.question,
+                correct_answer: currentQuestion.answer
+            });
+
         } else {
-            const newAttempts = attempts + 1;
-            setAttempts(newAttempts);
-            if (newAttempts >= maxAttempts) {
-                setIsAnswered(true);
+            // INCORRECT LOGIC
+            if (attemptState === 'first_try') {
+                // First Fail -> Lock and Ask Reflection
+                setAttemptState('reflection_pending');
+                setReflectionRequired(true); // Gates navigation + Shows "Answer Tutor" placeholder
+
+                // Pass empty history [] to ensure focus on reflection
+                callChatbotAPI([], {
+                    type: 'failure_reflection_1',
+                    question_text: currentQuestion.question,
+                    user_answer: option,
+                    correct_answer: currentQuestion.answer,
+                    explanation: currentQuestion.explanation
+                });
+            } else if (attemptState === 'retrying') {
+                // Second Fail -> Show Answer, Ask Explanation, Then Finish
                 setIsCorrect(false);
+                setIsAnswered(true); // Reveal answer visually
+                setAttemptState('explanation_pending');
+                setReflectionRequired(true);
+
+                // Pass empty history [] to ensure focus on explanation request
+                callChatbotAPI([], {
+                    type: 'failure_explanation_request',
+                    question_text: currentQuestion.question,
+                    user_answer: option,
+                    correct_answer: currentQuestion.answer,
+                    explanation: currentQuestion.explanation
+                });
             }
         }
     };
@@ -152,26 +200,35 @@ export default function LearnPage() {
             setSelectedOption(null);
             setIsAnswered(false);
             setIsCorrect(false);
-            setAttempts(0);
-            setChatStep("idle");
+            setAttemptState('first_try');
+            setReflectionRequired(false);
+            // Clear chat history for next question to prevent context pollution
+            setChatMessages([{ id: `intro_${Date.now()}`, role: "bot", text: "New question! I'm here if you need help." }]);
         }
     };
 
     const handleUserMessage = async (text: string) => {
-        // User sent a reflection
-        setChatMessages(prev => [...prev, { id: Date.now().toString(), role: "user", text }]);
+        // User sent a message
+        const newMsg: Message = { id: Date.now().toString(), role: "user", text };
+        setChatMessages(prev => [...prev, newMsg]);
 
-        // Acknowledge and unblock
-        setTimeout(() => {
-            setChatMessages(prev => [...prev, { id: `ack-${Date.now()}`, role: "bot", text: "Thanks for sharing! That's a great insight." }]);
-            setChatStep("completed");
-        }, 1000);
+        let nextContext = { type: 'general_chat' };
+
+        // Handle Reply logic
+        if (attemptState === 'reflection_pending') {
+            setAttemptState('retrying'); // Unlock for 2nd try
+            setReflectionRequired(false);
+            // Theoretically we could pass context here to say "User reflected, now encourage retry"
+        } else if (attemptState === 'explanation_pending') {
+            setAttemptState('completed'); // Allow next button
+            setReflectionRequired(false);
+        }
+
+        // Call API
+        await callChatbotAPI([...chatMessages, newMsg], nextContext);
     };
 
-    const handleAcknowledgement = () => {
-        setChatMessages(prev => [...prev, { id: `ack-btn-${Date.now()}`, role: "user", text: "Got it, thanks!" }]);
-        setChatStep("completed");
-    };
+
 
     if (lessonComplete) {
         return (
@@ -196,8 +253,8 @@ export default function LearnPage() {
                                 setSelectedOption(null);
                                 setIsAnswered(false);
                                 setIsCorrect(false);
-                                setAttempts(0);
-                                setChatStep("idle");
+                                setAttemptState('first_try');
+                                setReflectionRequired(false);
                                 setChatMessages([{ id: "intro_reset", role: "bot", text: "Welcome back! Ready for another round?" }]);
                             }}
                             className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -217,7 +274,8 @@ export default function LearnPage() {
     }
 
     // Calculate if Next button should be enabled
-    const canProceed = isAnswered && chatStep === "completed";
+    // Only enabled if 'completed' AND strict reflection not required (redundant check but safe)
+    const canProceed = (isAnswered || attemptState === 'completed') && !reflectionRequired;
 
     return (
         <div className="flex min-h-screen flex-col p-4 md:p-8 max-h-screen overflow-hidden">
@@ -290,7 +348,7 @@ export default function LearnPage() {
                                         <button
                                             key={option}
                                             onClick={() => handleOptionClick(option)}
-                                            disabled={isAnswered}
+                                            disabled={isAnswered || attemptState === 'reflection_pending' || attemptState === 'explanation_pending'}
                                             className={style}
                                         >
                                             <div className="flex items-center justify-between">
@@ -305,14 +363,13 @@ export default function LearnPage() {
                             </div>
 
                             {/* Attempts Indicator */}
-                            {!isAnswered && attempts > 0 && (
+                            {attemptState === 'retrying' && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    key={attempts}
                                     className="mt-4 text-center text-sm font-medium text-orange-500"
                                 >
-                                    Incorrect. You have {maxAttempts - attempts} attempts remaining.
+                                    One more try! You can do it.
                                 </motion.div>
                             )}
 
@@ -356,15 +413,8 @@ export default function LearnPage() {
                     <Chatbot
                         messages={chatMessages}
                         onSendMessage={handleUserMessage}
-                        inputEnabled={chatStep === "reflection"}
-                        actionNode={chatStep === "feedback" ? (
-                            <button
-                                onClick={handleAcknowledgement}
-                                className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
-                            >
-                                Got it, I've checked!
-                            </button>
-                        ) : undefined}
+                        inputEnabled={!isChatLoading}
+                        placeholder={reflectionRequired ? "Please answer the tutor's question..." : "Ask me anything..."}
                         className="h-full"
                     />
                 </div>

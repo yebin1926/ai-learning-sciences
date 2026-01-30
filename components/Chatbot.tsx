@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Bot, User, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export interface Message {
     id: string;
@@ -72,30 +74,22 @@ export default function Chatbot({
                     {messages.map((msg) => (
                         <motion.div
                             key={msg.id}
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.3 }}
                             className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                         >
-                            <div
-                                className={`flex max-w-[85%] items-start gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                                    }`}
-                            >
-                                <div
-                                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ${msg.role === "user"
-                                            ? "bg-slate-800 text-white"
-                                            : "bg-white text-indigo-600 border border-indigo-100"
-                                        }`}
-                                >
+                            <div className={`flex max-w-[85%] items-start gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ${msg.role === "user" ? "bg-slate-800 text-white" : "bg-white text-indigo-600 border border-indigo-100"}`}>
                                     {msg.role === "user" ? <User size={14} /> : <Bot size={14} />}
                                 </div>
-                                <div
-                                    className={`rounded-2xl px-4 py-3 shadow-sm text-sm leading-relaxed ${msg.role === "user"
-                                            ? "bg-slate-800 text-white rounded-tr-sm"
-                                            : "bg-white text-slate-700 border border-slate-100 rounded-tl-sm"
-                                        }`}
-                                >
-                                    {msg.text}
+                                <div className={`rounded-2xl px-4 py-3 shadow-sm text-sm leading-relaxed ${msg.role === "user" ? "bg-slate-800 text-white rounded-tr-sm" : "bg-white text-slate-700 border border-slate-100 rounded-tl-sm"}`}>
+                                    <div className={`prose prose-sm max-w-none ${msg.role === "user" ? "prose-invert" : ""}`}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {msg.text}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
