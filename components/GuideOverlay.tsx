@@ -10,12 +10,13 @@ import guideData2 from "@/components/starting-guide2.json";
 import guideData3 from "@/components/starting-guide3.json";
 
 interface GuideOverlayProps {
-    onComplete: () => void;
+    onComplete: (participantId: string) => void;
 }
 
 export default function GuideOverlay({ onComplete }: GuideOverlayProps) {
     const router = useRouter();
     const [step, setStep] = useState<number>(0);
+    const [participantId, setParticipantId] = useState<string>("");
 
     // Step 0: Consent (Guide 1)
     // Step 1: Survey (Guide 2)
@@ -36,7 +37,11 @@ export default function GuideOverlay({ onComplete }: GuideOverlayProps) {
     };
 
     const handleFinalNext = () => {
-        onComplete(); // Go to Learn Session
+        if (!participantId.trim()) {
+            alert("참여자 식별번호를 입력해주세요.");
+            return;
+        }
+        onComplete(participantId); // Go to Learn Session
     };
 
     // Shared container class for consistent width (approx 3/5 on large screens)
@@ -105,7 +110,7 @@ export default function GuideOverlay({ onComplete }: GuideOverlayProps) {
                                 {/* QUALTRICS IFRAME */}
                                 <div className="w-full border-2 border-slate-100 rounded-2xl overflow-hidden bg-white">
                                     <iframe
-                                        src="https://snuss1.qualtrics.com/jfe/form/SV_57RCKpqDGb6hpMq"
+                                        src="https://snuss1.qualtrics.com/jfe/form/SV_0lA998ZZ6jUCZE2"
                                         className="w-full h-[600px] md:h-[500px]"
                                         frameBorder="0"
                                         title="Survey"
@@ -126,7 +131,7 @@ export default function GuideOverlay({ onComplete }: GuideOverlayProps) {
                     </motion.div>
                 )}
 
-                {/* STEP 2: GUIDE 3 (New) */}
+                {/* STEP 2: GUIDE 3 (New) + Participant ID Field */}
                 {step === 2 && (
                     <motion.div
                         key="step2"
@@ -144,13 +149,28 @@ export default function GuideOverlay({ onComplete }: GuideOverlayProps) {
                                     {section.text}
                                 </p>
                             ))}
+
+                            {/* PARTICIPANT ID INPUT */}
+                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mt-4">
+                                <label className="block text-lg font-bold text-slate-800 mb-2">
+                                    참여자 식별번호를 다시 적어주세요.
+                                </label>
+                                <input
+                                    type="text"
+                                    value={participantId}
+                                    onChange={(e) => setParticipantId(e.target.value)}
+                                    placeholder="예: P101"
+                                    className="w-full p-4 rounded-xl border-2 border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-lg outline-none transition-all"
+                                />
+                            </div>
                         </div>
 
                         {/* Footer with START Button */}
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
                             <button
                                 onClick={handleFinalNext}
-                                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 shadow-lg transition-transform active:scale-95"
+                                disabled={!participantId.trim()}
+                                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 shadow-lg transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Start Learning <ArrowRight size={20} />
                             </button>

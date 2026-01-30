@@ -18,6 +18,12 @@ export default function TestPage() {
     // Stage Management
     const [stage, setStage] = useState<TestStage>('intro');
 
+    // Data State
+    const [participantId, setParticipantId] = useState<string>("");
+    const [age, setAge] = useState<string>("");
+    const [gender, setGender] = useState<string>("");
+    const [major, setMajor] = useState<string>("");
+
     // Test State
     const [essayAnswer, setEssayAnswer] = useState<string>("");
     const [submitted, setSubmitted] = useState<boolean>(false);
@@ -28,6 +34,7 @@ export default function TestPage() {
 
     // Timer State (60s = 1m) [TESTING]
     const [timeLeft, setTimeLeft] = useState<number>(60);
+    const [hasLogged, setHasLogged] = useState<boolean>(false);
 
     // --- Helpers ---
     const showAlert = (msg: string, type: 'error' | 'warning' = 'error') => {
@@ -41,6 +48,31 @@ export default function TestPage() {
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
+
+    const logTestData = async () => {
+        if (!participantId) return; // Should allow finish regardless? Maybe warn.
+        if (hasLogged) return;
+        setHasLogged(true);
+
+        try {
+            await fetch('/api/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participantId,
+                    type: 'test',
+                    data: {
+                        essayAnswer,
+                        demographics: { age, gender, major },
+                        completedAt: new Date().toISOString()
+                    }
+                })
+            });
+        } catch (error) {
+            console.error("Failed to log test session:", error);
+        }
+    };
+
 
     // --- Effects (Timer - Only runs in 'test' stage) ---
     useEffect(() => {
@@ -69,7 +101,6 @@ export default function TestPage() {
         } else if (timeLeft === 0 && !submitted) {
             // TIME OVER -> Force Submit & End
             handleSubmit();
-            setStage('outro');
         }
     }, [timeLeft, submitted, stage]);
 
@@ -79,8 +110,25 @@ export default function TestPage() {
     const handleSubmit = () => {
         if (submitted) return;
         setSubmitted(true);
-        // Save the essay answer if needed (not implemented yet, just flow)
+        // Move to Outro
         setStage('outro');
+    };
+
+    const handleIntroNext = () => {
+        if (!participantId.trim()) {
+            showAlert("참여자 식별번호를 입력해주세요.");
+            return;
+        }
+        setStage('test');
+    };
+
+    const handleGoHome = async () => {
+        if (!age || !gender || !major) {
+            showAlert("모든 정보를 입력해주세요.");
+            return;
+        }
+        await logTestData();
+        router.push('/');
     };
 
     // --- RENDERING ---
@@ -103,13 +151,42 @@ export default function TestPage() {
                                 {section.text}
                             </p>
                         ))}
+                        {/* PARTICIPANT ID INPUT */}
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mt-4">
+                            <label className="block text-lg font-bold text-slate-800 mb-2">
+                                참여자 식별번호를 다시 적어주세요.
+                            </label>
+                            <input
+                                type="text"
+                                value={participantId}
+                                onChange={(e) => setParticipantId(e.target.value)}
+                                placeholder="예: P101"
+                                className="w-full p-4 rounded-xl border-2 border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-lg outline-none transition-all"
+                            />
+                        </div>
                     </div>
+
+                    {/* ALERT TOAST for Intro */}
+                    <AnimatePresence>
+                        {alertMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -50, x: "-50%" }}
+                                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                                exit={{ opacity: 0, y: -20, x: "-50%" }}
+                                className={`fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-xl bg-red-500`}
+                            >
+                                <AlertCircle size={20} />
+                                <span className="font-medium">{alertMessage}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between shrink-0">
                         <Link href="/" className="px-6 py-3 rounded-xl border-2 border-slate-300 text-slate-600 font-bold hover:bg-slate-100 transition-colors flex items-center gap-2">
                             <ArrowLeft size={20} /> Back
                         </Link>
                         <button
-                            onClick={() => setStage('test')}
+                            onClick={handleIntroNext}
                             className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
                         >
                             Next <ArrowRight size={20} />
@@ -132,17 +209,81 @@ export default function TestPage() {
                     <div className="bg-slate-900 p-8 text-white">
                         <h1 className="text-2xl font-bold leading-tight">{testEndGuide.title}</h1>
                     </div>
-                    <div className="p-8 overflow-y-auto space-y-8 flex-1">
+                    <div className="p-8 overflow-y-auto space-y-6 flex-1">
                         {testEndGuide.sections.map((section, idx) => (
                             <p key={idx} className="text-slate-700 leading-relaxed whitespace-pre-line text-lg">
                                 {section.text}
                             </p>
                         ))}
+
+                        {/* DEMOGRAPHICS FORM */}
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mt-4 space-y-4">
+                            <h3 className="font-bold text-slate-900 border-b pb-2 mb-4">인구통계학적 정보</h3>
+
+                            {/* Age */}
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-2">나이 (Age)</label>
+                                <input
+                                    type="number"
+                                    value={age}
+                                    onChange={(e) => setAge(e.target.value)}
+                                    placeholder="만 나이 입력 (숫자만)"
+                                    className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-100 outline-none"
+                                />
+                            </div>
+
+                            {/* Gender */}
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-2">성별 (Gender)</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="gender" value="남" checked={gender === "남"} onChange={(e) => setGender(e.target.value)} className="w-5 h-5 text-blue-600" />
+                                        <span>남성</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="gender" value="여" checked={gender === "여"} onChange={(e) => setGender(e.target.value)} className="w-5 h-5 text-blue-600" />
+                                        <span>여성</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Major */}
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-2">전공 (Major)</label>
+                                <input
+                                    type="text"
+                                    value={major}
+                                    onChange={(e) => setMajor(e.target.value)}
+                                    placeholder="전공 입력"
+                                    className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-100 outline-none"
+                                />
+                            </div>
+
+                        </div>
                     </div>
+
+                    {/* ALERT TOAST for Outro */}
+                    <AnimatePresence>
+                        {alertMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -50, x: "-50%" }}
+                                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                                exit={{ opacity: 0, y: -20, x: "-50%" }}
+                                className={`fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-xl bg-red-500`}
+                            >
+                                <AlertCircle size={20} />
+                                <span className="font-medium">{alertMessage}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
-                        <Link href="/" className="px-8 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                        <button
+                            onClick={handleGoHome}
+                            className="px-8 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        >
                             Go Home <Home size={20} />
-                        </Link>
+                        </button>
                     </div>
                 </motion.div>
             </div>

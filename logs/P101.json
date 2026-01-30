@@ -1,0 +1,46 @@
+{
+  "learnSession": {
+    "history": {
+      "0": {
+        "selectedOption": "B",
+        "isCorrect": true,
+        "isAnswered": true,
+        "attemptState": "completed"
+      }
+    },
+    "chatMessages": [
+      {
+        "id": "intro",
+        "role": "bot",
+        "text": "Hi! I'm here to help you reflect on your learning. You can ask me questions anytime!"
+      },
+      {
+        "id": "1769805054324",
+        "role": "bot",
+        "text": "Good try — that answer wasn’t correct.  \n\nWhich sentence or phrase in the passage made you choose **“produce a wide variety of fruits and vegetables”**? Point to the exact wording you relied on."
+      },
+      {
+        "id": "1769805067948",
+        "role": "user",
+        "text": "i just guessed it"
+      },
+      {
+        "id": "1769805076948",
+        "role": "bot",
+        "text": "No problem — guessing is part of learning! Want to try again or see the explanation?  \n\nHere are a few quick tips that help avoid guessing next time:\n\n- **Reread the question and the passage carefully.** Look for exact words or synonyms in the text that match the answer choices.  \n- **Underline the sentence** that seems most related to the question — if you can’t find one, the choice is probably wrong.  \n- **Use elimination.** Cross out options that go beyond what the passage says or introduce new ideas.  \n- **Watch for extreme words** (always, never, all) — they’re often wrong unless directly supported.  \n- **Ask yourself:** “Does the passage explicitly say this, or is it only implied?”\n\nWhat would you like now?\n- Try again (I’ll give a hint), or\n- Show the correct answer and a short explanation?"
+      }
+    ],
+    "completedAt": "2026-01-30T20:31:46.359Z",
+    "timestamp": "2026-01-30T20:31:46.796Z"
+  },
+  "testSession": {
+    "essayAnswer": "dsfgl;s\nblajlvkklb\ns\n\n\nfdghhfjgfhdgfsdas\ndsfgfhgfgfsdas",
+    "demographics": {
+      "age": "21",
+      "gender": "여",
+      "major": "전공전공"
+    },
+    "completedAt": "2026-01-30T20:33:06.049Z",
+    "timestamp": "2026-01-30T20:33:06.069Z"
+  }
+}

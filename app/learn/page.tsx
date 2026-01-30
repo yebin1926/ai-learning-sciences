@@ -6,10 +6,14 @@ import LearnSession from "@/components/LearnSession";
 
 export default function LearnPage() {
     const [showGuide, setShowGuide] = useState<boolean>(true);
+    const [participantId, setParticipantId] = useState<string>("");
 
     if (showGuide) {
-        return <GuideOverlay onComplete={() => setShowGuide(false)} />;
+        return <GuideOverlay onComplete={(id) => {
+            setParticipantId(id);
+            setShowGuide(false);
+        }} />;
     }
 
-    return <LearnSession />;
+    return <LearnSession participantId={participantId} />;
 }

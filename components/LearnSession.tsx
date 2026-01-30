@@ -21,7 +21,11 @@ interface QuestionHistory {
     attemptState: 'first_try' | 'reflection_pending' | 'retrying' | 'explanation_pending' | 'completed';
 }
 
-export default function LearnSession() {
+interface LearnSessionProps {
+    participantId: string;
+}
+
+export default function LearnSession({ participantId }: LearnSessionProps) {
     const router = useRouter();
 
     // --- Learn Page State ---
@@ -41,6 +45,7 @@ export default function LearnSession() {
 
     // Timer State (60s = 1m) [TESTING]
     const [timeLeft, setTimeLeft] = useState<number>(60);
+    const [hasLogged, setHasLogged] = useState<boolean>(false);
 
 
     const [history, setHistory] = useState<Record<number, QuestionHistory>>({});
@@ -68,6 +73,29 @@ export default function LearnSession() {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const logSessionData = async () => {
+        if (hasLogged) return;
+        setHasLogged(true);
+
+        try {
+            await fetch('/api/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participantId,
+                    type: 'learn',
+                    data: {
+                        history,
+                        chatMessages,
+                        completedAt: new Date().toISOString()
+                    }
+                })
+            });
+        } catch (error) {
+            console.error("Failed to log learning session:", error);
+        }
     };
 
 
@@ -114,10 +142,15 @@ export default function LearnSession() {
         } else if (timeLeft === 10) {
             showAlert("10 seconds left!", 'warning');
         } else if (timeLeft === 0 && !lessonComplete) {
-            // TIME OVER -> Force Post-Survey
-            setLessonComplete(true);
+            // TIME OVER
+            handleFinishLesson();
         }
     }, [timeLeft, lessonComplete]);
+
+    const handleFinishLesson = () => {
+        setLessonComplete(true);
+        logSessionData();
+    };
 
     // --- Effects (Learn Page) ---
 
@@ -294,7 +327,7 @@ export default function LearnSession() {
                 setCurrentIndex((prev) => prev + 1);
             }
         } else if (isLastQuestion && isAnswered) {
-            setLessonComplete(true);
+            handleFinishLesson();
         }
     };
 
@@ -505,7 +538,6 @@ export default function LearnSession() {
                                             >
                                                 <div className="flex items-center justify-between gap-3">
                                                     <span className="shrink-0 font-bold text-slate-400">{key}</span>
-                                                    // @ts-ignore
                                                     <span className="flex-1">{text}</span>
 
                                                     {/* Success Icon */}
