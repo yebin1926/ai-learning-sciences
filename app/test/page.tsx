@@ -10,50 +10,6 @@ import { useRouter } from "next/navigation";
 import testStartGuide from "@/components/test-starting-guide.json";
 import testEndGuide from "@/components/test-ending-guide.json";
 
-interface Question {
-    id: number;
-    question: string;
-    options: string[];
-    answer: string;
-}
-
-const questions: Question[] = [
-    {
-        id: 1,
-        question: "Which of these is a synonym for 'Happy'?",
-        options: ["Sad", "Joyful", "Angry", "Tired"],
-        answer: "Joyful",
-    },
-    {
-        id: 2,
-        question: "Identify the noun in the sentence: 'The cat sleeps.'",
-        options: ["The", "Cat", "Sleeps", "Deeply"],
-        answer: "Cat",
-    },
-    {
-        id: 3,
-        question: "Who wrote 'Romeo and Juliet'?",
-        options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
-        answer: "William Shakespeare",
-    },
-    {
-        id: 4,
-        question: "What is the past tense of 'Run'?",
-        options: ["Running", "Ran", "Runned", "Runs"],
-        answer: "Ran",
-    },
-    {
-        id: 5,
-        question: "Complete the proverb: 'Better late than...'",
-        options: ["Early", "Never", "Ever", "Now"],
-        answer: "Never",
-    },
-];
-
-interface SelectedAnswers {
-    [key: number]: string;
-}
-
 type TestStage = 'intro' | 'test' | 'outro';
 
 export default function TestPage() {
@@ -63,9 +19,8 @@ export default function TestPage() {
     const [stage, setStage] = useState<TestStage>('intro');
 
     // Test State
-    const [selectedAnswers, setSelectedAnswers] = useState<SelectedAnswers>({});
+    const [essayAnswer, setEssayAnswer] = useState<string>("");
     const [submitted, setSubmitted] = useState<boolean>(false);
-    const [score, setScore] = useState<number>(0);
 
     // UX State (Alerts)
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -120,40 +75,11 @@ export default function TestPage() {
 
 
     // --- Handlers ---
-    const handleOptionSelect = (questionId: number, option: string) => {
-        if (submitted) return;
-        setSelectedAnswers((prev) => ({ ...prev, [questionId]: option }));
-    };
 
     const handleSubmit = () => {
         if (submitted) return;
-
-        let currentScore = 0;
-        questions.forEach((q) => {
-            if (selectedAnswers[q.id] === q.answer) {
-                currentScore++;
-            }
-        });
-        setScore(currentScore);
         setSubmitted(true);
-        // We do NOT immediately change stage here? Or maybe we do. 
-        // User request: "After the user is finished ... redirect users to a new page with contents of test-ending-guide".
-        // So hitting submit should probably show the result briefly OR go straight to End guide.
-        // Usually, in tests, seeing the score IS the end. 
-        // But the requirements say "redirect users to a new page... ending-guide".
-        // So I will redirect to 'outro' immediately after submit? 
-        // Or maybe let them see the score, then click "Finish"?
-        // Typically "finished" means they are done. 
-        // Let's make it so Submit -> Transitions to Outro. 
-        // BUT, showing the score/feedback is valuable.
-        // I'll show the score view, but replace the "Go Home" button there with "Finish Test" -> Outro.
-
-        // Actually, the request says "After the user is finished... redirect users to a new page".
-        // Use the existing "knowledge check result" view for feedback?
-        // Let's transition to 'outro' when they click "Next" or "Finish" from the result view.
-        // WAIT: The prompt implies the OUTRO PAGE is the destination. 
-        // So I will change the "Submit" action to go to 'outro' OR show a score summary which leads to 'outro'.
-
+        // Save the essay answer if needed (not implemented yet, just flow)
         setStage('outro');
     };
 
@@ -243,8 +169,6 @@ export default function TestPage() {
             </AnimatePresence>
 
             <div className="flex items-center justify-between mb-8">
-                {/* Intro Back Button (disabled during test usually, but keeping it for safety?) */}
-                {/* Actually user cannot go back to Intro easily. */}
                 <div className="text-sm font-bold text-slate-400">Assessment</div>
 
                 {/* Timer Badge */}
@@ -258,55 +182,25 @@ export default function TestPage() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mx-auto max-w-3xl"
+                className="mx-auto max-w-4xl"
             >
                 <div className="mb-10 text-center">
                     <h1 className="text-4xl font-bold text-slate-800">Knowledge Check</h1>
-                    <p className="mt-2 text-slate-600">
-                        {/* Removing Score display here as per new flow? Or keep it? */}
-                        Answer the 5 questions below.
-                    </p>
                 </div>
 
-                <div className="space-y-6">
-                    {questions.map((q, index) => (
-                        <motion.div
-                            key={q.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-6 shadow-sm backdrop-blur-md"
-                        >
-                            <h3 className="mb-4 text-xl font-semibold text-slate-800">
-                                <span className="mr-2 text-slate-400">#{index + 1}</span>
-                                {q.question}
-                            </h3>
+                <div className="overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-8 shadow-sm backdrop-blur-md">
+                    <h3 className="mb-6 text-xl font-semibold text-slate-800">
+                        이전 지문이 어떤 내용이었는지 최대한 기억나는 만큼 작성해주세요 (임시 질문).
+                    </h3>
 
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {q.options.map((option) => {
-                                    const isSelected = selectedAnswers[q.id] === option;
-
-                                    let buttonStyle = "relative flex items-center justify-between rounded-xl border p-4 text-left font-medium transition-all hover:shadow-md";
-
-                                    if (isSelected) {
-                                        buttonStyle += " border-blue-400/50 bg-blue-100 text-blue-900 shadow-sm";
-                                    } else {
-                                        buttonStyle += " border-slate-200 bg-white/40 text-slate-700 hover:border-blue-300 hover:bg-blue-50";
-                                    }
-
-                                    return (
-                                        <button
-                                            key={option}
-                                            onClick={() => handleOptionSelect(q.id, option)}
-                                            className={buttonStyle}
-                                        >
-                                            <span>{option}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </motion.div>
-                    ))}
+                    <textarea
+                        className="w-full h-96 p-6 rounded-xl border-2 border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none text-lg text-slate-800"
+                        style={{ fontFamily: '"Cambria Math", serif', lineHeight: '1.5' }}
+                        placeholder="이곳에 답변을 작성해주세요..."
+                        value={essayAnswer}
+                        onChange={(e) => setEssayAnswer(e.target.value)}
+                        disabled={submitted}
+                    />
                 </div>
 
                 <motion.div
@@ -316,10 +210,10 @@ export default function TestPage() {
                 >
                     <button
                         onClick={handleSubmit}
-                        disabled={Object.keys(selectedAnswers).length < questions.length}
+                        disabled={essayAnswer.trim().length === 0}
                         className="rounded-2xl bg-slate-900 px-10 py-4 text-lg font-bold text-white shadow-xl transition-transform hover:scale-105 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        Submit Answers
+                        Submit Answer
                     </button>
                 </motion.div>
             </motion.div>
