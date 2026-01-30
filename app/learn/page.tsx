@@ -2,97 +2,37 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle, ArrowLeft, RefreshCw, MessageCircle } from "lucide-react";
+import { ArrowRight, CheckCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Chatbot, { Message } from "@/components/Chatbot";
+import questionsData from "@/components/questions.json";
+import { passage } from "@/components/passage";
 
-interface LearningContent {
-    id: number;
-    category: string;
-    question: string;
-    options: string[];
-    answer: string;
-    explanation: string;
-    clue: string;
+// Transform JSON data to match our interface or use directly
+const questions = questionsData.questions;
+
+// Interface for History Tracking
+interface QuestionHistory {
+    selectedOption: string | null;
+    isCorrect: boolean;
+    isAnswered: boolean;
+    attemptState: 'first_try' | 'reflection_pending' | 'retrying' | 'explanation_pending' | 'completed';
 }
-
-const learningContent: LearningContent[] = [
-    {
-        id: 1,
-        category: "Vocabulary",
-        question: "What does the word 'Serendipity' mean?",
-        options: [
-            "A tragedy",
-            "Finding something good without looking for it",
-            "A type of dance",
-            "Being extremely sad"
-        ],
-        answer: "Finding something good without looking for it",
-        explanation: "'Serendipity' is a happy accident or pleasant surprise! It was coined by Horace Walpole in 1754.",
-        clue: "happy accident"
-    },
-    {
-        id: 2,
-        category: "Grammar",
-        question: "Which sentence uses the correct 'Your/You're'?",
-        options: [
-            "Your going to be late.",
-            "Is that you're cat?",
-            "You're amazing!",
-            "I like your smile."
-        ],
-        answer: "You're amazing!",
-        explanation: "'You're' is a contraction for 'You are'. so 'You are amazing!' makes sense. 'Your' shows possession.",
-        clue: "contraction"
-    },
-    {
-        id: 3,
-        category: "Literature",
-        question: "In 'The Great Gatsby', who is Gatsby in love with?",
-        options: ["Jordan Baker", "Daisy Buchanan", "Myrtle Wilson", "Nick Carraway"],
-        answer: "Daisy Buchanan",
-        explanation: "Jay Gatsby builds his entire fortune and persona to win back his former love, Daisy Buchanan.",
-        clue: "green light"
-    },
-    {
-        id: 4,
-        category: "Idioms",
-        question: "What does 'Break a leg' mean?",
-        options: ["Get hurt", "Good luck", "Stop working", "Dance wildly"],
-        answer: "Good luck",
-        explanation: "It's a way to wish someone good luck, especially before a performance, to avoid 'jinxing' them.",
-        clue: "performance superstition"
-    },
-    {
-        id: 5,
-        category: "Poetry",
-        question: "What is a Haiku?",
-        options: [
-            "A 5-7-5 syllable poem",
-            "A long epic story",
-            "A poem that always rhymes",
-            "A song about nature"
-        ],
-        answer: "A 5-7-5 syllable poem",
-        explanation: "A Haiku is a Japanese poetic form consisting of three phrases with a 5, 7, 5 syllable structure.",
-        clue: "syllable structure"
-    }
-];
 
 export default function LearnPage() {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
-    const [selectedOption, setSelectedOption] = useState<string | null>(null);
-    const [isAnswered, setIsAnswered] = useState<boolean>(false); // True when question is fully "Done" (correct or failed twice)
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const [lessonComplete, setLessonComplete] = useState<boolean>(false);
+    const [maxIndexReached, setMaxIndexReached] = useState<number>(0); // Furthest question reached
 
-    // New Attempt Logic
-    // 'first_try': Initial state
-    // 'reflection_pending': Failed once, waiting for chat reflection
-    // 'retrying': Chat satisfied, user can try again
-    // 'explanation_pending': Failed twice, waiting for explanation reflection
-    // 'completed': Done (Correct or Explanation Reflection satisfied)
+    // Per-question state (current view)
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState<boolean>(false);
+    const [isCorrect, setIsCorrect] = useState<boolean>(false);
     const [attemptState, setAttemptState] = useState<'first_try' | 'reflection_pending' | 'retrying' | 'explanation_pending' | 'completed'>('first_try');
+
+    // History of answers for "Back" navigation
+    const [history, setHistory] = useState<Record<number, QuestionHistory>>({});
+
+    const [lessonComplete, setLessonComplete] = useState<boolean>(false);
 
     // Chatbot State
     const [chatMessages, setChatMessages] = useState<Message[]>([
@@ -101,9 +41,8 @@ export default function LearnPage() {
     const [reflectionRequired, setReflectionRequired] = useState<boolean>(false);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
 
-    const currentQuestion = learningContent[currentIndex];
-    const isLastQuestion = currentIndex === learningContent.length - 1;
-    const maxAttempts = 3;
+    const currentQuestion = questions[currentIndex];
+    const isLastQuestion = currentIndex === questions.length - 1;
 
     // Helper to call Chat API
     const callChatbotAPI = async (messages: Message[], context?: any) => {
@@ -138,24 +77,65 @@ export default function LearnPage() {
         }
     }, [isAnswered, isCorrect]);
 
-    const handleOptionClick = (option: string) => {
-        if (isAnswered || attemptState === 'reflection_pending' || attemptState === 'explanation_pending') return;
+    // Restore state when navigating between questions
+    useEffect(() => {
+        const savedState = history[currentIndex];
+        if (savedState) {
+            // Restore context for Review Mode
+            setSelectedOption(savedState.selectedOption);
+            setIsAnswered(savedState.isAnswered);
+            setIsCorrect(savedState.isCorrect);
+            setAttemptState(savedState.attemptState);
+            setReflectionRequired(false); // No reflection required in review mode
+        } else {
+            // New Question (fresh state)
+            setSelectedOption(null);
+            setIsAnswered(false);
+            setIsCorrect(false);
+            setAttemptState('first_try');
+            setReflectionRequired(false);
+        }
+    }, [currentIndex, history]);
 
-        setSelectedOption(option);
-        const correct = option === currentQuestion.answer;
+
+    const handleOptionClick = (optionKey: string) => {
+        // If already answered (history exists or local state isAnswered), block changes
+        const isReviewMode = !!history[currentIndex];
+
+        if (isAnswered || isReviewMode || attemptState === 'reflection_pending' || attemptState === 'explanation_pending') return;
+
+        setSelectedOption(optionKey);
+        // Map Option Key (A, B, C, D) to content if needed, but logic uses Key
+        const correct = optionKey === currentQuestion.correct_option;
+        // @ts-ignore - JSON structure for options is valid but TS might want explicit type
+        const answerContent = currentQuestion.options[optionKey];
 
         if (correct) {
             setIsCorrect(true);
             setIsAnswered(true);
             setAttemptState('completed');
 
-            // Trigger Success Praise
-            // Pass empty history [] to force bot to focus ONLY on the current success context, 
-            // ignoring previous random chat (e.g. "hamsters").
+            // Save to history immediately
+            setHistory(prev => ({
+                ...prev,
+                [currentIndex]: {
+                    selectedOption: optionKey,
+                    isCorrect: true,
+                    isAnswered: true,
+                    attemptState: 'completed'
+                }
+            }));
+
+            // Update Max Reached if this is the furthest
+            if (currentIndex >= maxIndexReached) {
+                setMaxIndexReached(currentIndex + 1);
+            }
+
+            // Trigger Success Praise (Empty History to avoid pollution)
             callChatbotAPI([], {
                 type: 'success_feedback',
                 question_text: currentQuestion.question,
-                correct_answer: currentQuestion.answer
+                correct_answer: currentQuestion.correct_answer
             });
 
         } else {
@@ -163,49 +143,79 @@ export default function LearnPage() {
             if (attemptState === 'first_try') {
                 // First Fail -> Lock and Ask Reflection
                 setAttemptState('reflection_pending');
-                setReflectionRequired(true); // Gates navigation + Shows "Answer Tutor" placeholder
+                setReflectionRequired(true);
 
                 // Pass empty history [] to ensure focus on reflection
                 callChatbotAPI([], {
                     type: 'failure_reflection_1',
                     question_text: currentQuestion.question,
-                    user_answer: option,
-                    correct_answer: currentQuestion.answer,
-                    explanation: currentQuestion.explanation
+                    user_answer: answerContent,
+                    correct_answer: currentQuestion.correct_answer,
+                    // Note: JSON doesn't strictly have "explanation" field based on snippet, using placeholder or check data
+                    // Looking at questions.json, there is NO explanation field. 
+                    // We might need to omit explanation or generate generic one.
+                    explanation: "Review the passage carefully."
                 });
             } else if (attemptState === 'retrying') {
-                // Second Fail -> Show Answer, Ask Explanation, Then Finish
+                // Second Fail -> Show Answer (Fail State), Ask Explanation
                 setIsCorrect(false);
-                setIsAnswered(true); // Reveal answer visually
+                setIsAnswered(true);
                 setAttemptState('explanation_pending');
                 setReflectionRequired(true);
+
+                // Save to history so they can't change it anymore, even though it's wrong
+                setHistory(prev => ({
+                    ...prev,
+                    [currentIndex]: {
+                        selectedOption: optionKey,
+                        isCorrect: false,
+                        isAnswered: true,
+                        attemptState: 'explanation_pending' // Or completed? Keeping it pending until they chat?
+                        // Actually, let's allow them to finish the chat before "saving" as done.
+                        // But wait, if they navigate away, they lose progress?
+                        // For simplicity, let's treat "explanation_pending" as a blocking state.
+                        // They CANNOT navigate away until they chat.
+                    }
+                }));
 
                 // Pass empty history [] to ensure focus on explanation request
                 callChatbotAPI([], {
                     type: 'failure_explanation_request',
                     question_text: currentQuestion.question,
-                    user_answer: option,
-                    correct_answer: currentQuestion.answer,
-                    explanation: currentQuestion.explanation
+                    user_answer: answerContent,
+                    correct_answer: currentQuestion.correct_answer,
+                    explanation: "Review the passage."
                 });
             }
         }
     };
 
     const handleNext = () => {
-        if (isLastQuestion) {
+        if (currentIndex < questions.length - 1) {
+            // Only allow if current question is "done" (saved in history as completed/answered)
+            // Or if we have already reached further (Review mode)
+
+            // Basic check: Can we proceed?
+            // If we are reviewing an old question, we can always go next up to maxIndexReached.
+            // If we are at the latest question, it must be answered/completed.
+
+            if (currentIndex < maxIndexReached) {
+                setCurrentIndex((prev) => prev + 1);
+            } else if (isAnswered && !reflectionRequired) {
+                // Proceeding from latest
+                setMaxIndexReached(currentIndex + 1);
+                setCurrentIndex((prev) => prev + 1);
+            }
+        } else if (isLastQuestion && isAnswered && !reflectionRequired) {
             setLessonComplete(true);
-        } else {
-            setCurrentIndex((prev) => prev + 1);
-            setSelectedOption(null);
-            setIsAnswered(false);
-            setIsCorrect(false);
-            setAttemptState('first_try');
-            setReflectionRequired(false);
-            // Clear chat history for next question to prevent context pollution
-            setChatMessages([{ id: `intro_${Date.now()}`, role: "bot", text: "New question! I'm here if you need help." }]);
         }
     };
+
+    const handleBack = () => {
+        if (currentIndex > 0) {
+            setCurrentIndex((prev) => prev - 1);
+        }
+    }
 
     const handleUserMessage = async (text: string) => {
         // User sent a message
@@ -218,10 +228,23 @@ export default function LearnPage() {
         if (attemptState === 'reflection_pending') {
             setAttemptState('retrying'); // Unlock for 2nd try
             setReflectionRequired(false);
-            // Theoretically we could pass context here to say "User reflected, now encourage retry"
         } else if (attemptState === 'explanation_pending') {
             setAttemptState('completed'); // Allow next button
             setReflectionRequired(false);
+
+            // Update history to mark as fully completed
+            setHistory(prev => ({
+                ...prev,
+                [currentIndex]: {
+                    ...prev[currentIndex],
+                    attemptState: 'completed'
+                }
+            }));
+
+            // Allow progression
+            if (currentIndex >= maxIndexReached) {
+                setMaxIndexReached(currentIndex + 1);
+            }
         }
 
         // Call API
@@ -244,23 +267,8 @@ export default function LearnPage() {
                         </div>
                     </div>
                     <h1 className="mb-4 text-3xl font-bold text-slate-800">Lesson Complete!</h1>
-                    <p className="mb-8 text-slate-600">You've learned 5 new things today. Great job!</p>
+                    <p className="mb-8 text-slate-600">You've completed the reading comprehension.</p>
                     <div className="flex flex-col gap-3">
-                        <button
-                            onClick={() => {
-                                setLessonComplete(false);
-                                setCurrentIndex(0);
-                                setSelectedOption(null);
-                                setIsAnswered(false);
-                                setIsCorrect(false);
-                                setAttemptState('first_try');
-                                setReflectionRequired(false);
-                                setChatMessages([{ id: "intro_reset", role: "bot", text: "Welcome back! Ready for another round?" }]);
-                            }}
-                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
-                        >
-                            <RefreshCw size={18} /> Review Again
-                        </button>
                         <Link
                             href="/"
                             className="rounded-xl bg-slate-900 py-3 font-semibold text-white transition hover:bg-slate-800"
@@ -274,8 +282,8 @@ export default function LearnPage() {
     }
 
     // Calculate if Next button should be enabled
-    // Only enabled if 'completed' AND strict reflection not required (redundant check but safe)
-    const canProceed = (isAnswered || attemptState === 'completed') && !reflectionRequired;
+    const canProceed = (currentIndex < maxIndexReached) || ((isAnswered || attemptState === 'completed') && !reflectionRequired);
+    const canGoBack = currentIndex > 0;
 
     return (
         <div className="flex min-h-screen flex-col p-4 md:p-8 max-h-screen overflow-hidden">
@@ -288,128 +296,117 @@ export default function LearnPage() {
                     <ArrowLeft size={16} /> Home
                 </Link>
                 <div className="text-sm font-bold text-slate-400">
-                    Question {currentIndex + 1} of {learningContent.length}
+                    Question {currentIndex + 1} of {questions.length}
                 </div>
             </div>
 
             {/* content Grid */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0">
 
-                {/* Left Column: Learning Content */}
-                <div className="lg:col-span-2 flex flex-col h-full min-h-0 overflow-y-auto rounded-3xl bg-white p-6 shadow-xl ring-1 ring-black/5">
-                    {/* Progress Bar */}
-                    <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <motion.div
-                            className="h-full bg-blue-500"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${((currentIndex + 1) / learningContent.length) * 100}%` }}
-                            transition={{ duration: 0.5 }}
-                        />
+                {/* Left Column: Passage & Question */}
+                <div className="flex flex-col h-full min-h-0 gap-4">
+
+                    {/* Top: Passage (Scrollable) */}
+                    <div className="flex-1 overflow-y-auto rounded-3xl bg-white p-6 shadow-md ring-1 ring-black/5">
+                        <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed whitespace-pre-line">
+                            <h2 className="text-lg font-bold mb-4 text-slate-900">Passage</h2>
+                            {passage}
+                        </div>
                     </div>
 
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentIndex}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="flex-1 flex flex-col"
-                        >
-                            <div className="mb-4 inline-block rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-indigo-500 w-fit">
-                                {currentQuestion.category}
-                            </div>
+                    {/* Bottom: Question (Fixed height or flex) */}
+                    <div className="flex-1 flex flex-col overflow-y-auto rounded-3xl bg-white p-6 shadow-md ring-1 ring-black/5">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentIndex}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex-1 flex flex-col"
+                            >
+                                <h2 className="mb-6 text-xl font-bold leading-snug text-slate-800">
+                                    {currentQuestion.question}
+                                </h2>
 
-                            <h2 className="mb-6 text-2xl font-bold leading-snug text-slate-800">
-                                {currentQuestion.question}
-                            </h2>
+                                <div className="space-y-3 mb-6">
+                                    {Object.entries(currentQuestion.options).map(([key, text]) => {
+                                        let style = "w-full rounded-xl border-2 p-4 text-left font-medium transition-all duration-200 relative";
+                                        const isSelected = key === selectedOption;
 
-                            <div className="space-y-3 mb-6">
-                                {currentQuestion.options.map((option) => {
-                                    let style = "w-full rounded-xl border-2 p-4 text-left font-medium transition-all duration-200 relative";
-                                    const isSelected = option === selectedOption;
-
-                                    if (isAnswered) {
-                                        if (option === currentQuestion.answer) {
-                                            style += " border-green-500 bg-green-50 text-green-700";
-                                        } else if (isSelected && !isCorrect) {
-                                            style += " border-red-400 bg-red-50 text-red-700";
+                                        if (isAnswered) {
+                                            if (key === currentQuestion.correct_option) {
+                                                style += " border-green-500 bg-green-50 text-green-700";
+                                            } else if (isSelected && !isCorrect) {
+                                                style += " border-red-400 bg-red-50 text-red-700";
+                                            } else {
+                                                style += " border-slate-100 text-slate-400 opacity-50";
+                                            }
                                         } else {
-                                            style += " border-slate-100 text-slate-400 opacity-50";
+                                            if (isSelected && key !== currentQuestion.correct_option) {
+                                                style += " border-red-300 bg-white text-red-600 shake";
+                                            } else {
+                                                style += " border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-600 hover:text-blue-700";
+                                            }
                                         }
-                                    } else {
-                                        if (isSelected && option !== currentQuestion.answer) {
-                                            style += " border-red-300 bg-white text-red-600 shake";
-                                        } else {
-                                            style += " border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-600 hover:text-blue-700";
-                                        }
-                                    }
 
-                                    return (
-                                        <button
-                                            key={option}
-                                            onClick={() => handleOptionClick(option)}
-                                            disabled={isAnswered || attemptState === 'reflection_pending' || attemptState === 'explanation_pending'}
-                                            className={style}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                {option}
-                                                {isAnswered && option === currentQuestion.answer && (
-                                                    <CheckCircle size={20} className="text-green-500" />
-                                                )}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                        return (
+                                            <button
+                                                key={key}
+                                                // @ts-ignore
+                                                onClick={() => handleOptionClick(key)}
+                                                disabled={isAnswered || attemptState === 'reflection_pending' || attemptState === 'explanation_pending'}
+                                                className={style}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="shrink-0 font-bold text-slate-400">{key}</span>
+                                                    <span className="flex-1">{text}</span>
+                                                    {isAnswered && key === currentQuestion.correct_option && (
+                                                        <CheckCircle size={20} className="text-green-500 shrink-0" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
 
-                            {/* Attempts Indicator */}
-                            {attemptState === 'retrying' && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="mt-4 text-center text-sm font-medium text-orange-500"
-                                >
-                                    One more try! You can do it.
-                                </motion.div>
-                            )}
-
-                            {/* Explanation / Feedback */}
-                            <AnimatePresence>
-                                {isAnswered && (
+                                {/* Attempts Indicator */}
+                                {attemptState === 'retrying' && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        className="overflow-hidden"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-4 text-center text-sm font-medium text-orange-500"
                                     >
-                                        <div className="border-t border-slate-100 pt-6">
-                                            <div className={`mb-2 flex items-center gap-2 font-bold ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
-                                                {isCorrect ? 'Correct!' : 'Out of attempts!'}
-                                            </div>
-                                            <p className="text-base leading-relaxed text-slate-600">
-                                                {currentQuestion.explanation}
-                                            </p>
-                                        </div>
+                                        One more try! You can do it.
                                     </motion.div>
                                 )}
-                            </AnimatePresence>
-                        </motion.div>
-                    </AnimatePresence>
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
 
-                    {/* Navigation */}
-                    <div className="mt-auto pt-6 flex justify-end">
+                    {/* Navigation Controls */}
+                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
+                        <button
+                            onClick={handleBack}
+                            disabled={!canGoBack}
+                            className="flex items-center gap-2 px-4 py-2 font-medium text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:text-slate-900 transition"
+                        >
+                            <ArrowLeft size={18} /> Back
+                        </button>
+
                         <button
                             onClick={handleNext}
                             disabled={!canProceed}
-                            className="group flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-lg font-bold text-white shadow-lg transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                            className="group flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white shadow-md transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
                         >
-                            {isLastQuestion ? "Finish Lesson" : "Next Question"}
-                            <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                            {isLastQuestion ? "Finish" : "Next"}
+                            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                         </button>
                     </div>
+
                 </div>
 
                 {/* Right Column: Chatbot */}
-                <div className="lg:col-span-1 h-[500px] lg:h-full min-h-0">
+                <div className="h-[500px] lg:h-full min-h-0">
                     <Chatbot
                         messages={chatMessages}
                         onSendMessage={handleUserMessage}
