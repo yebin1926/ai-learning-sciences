@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle, ArrowLeft, XCircle, AlertCircle, Info } from "lucide-react";
+import { ArrowRight, CheckCircle, ArrowLeft, XCircle, AlertCircle, Info, Clock } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Chatbot, { Message } from "@/components/Chatbot";
 import questionsData from "@/components/questions.json";
 import { passage } from "@/components/passage";
 import Image from "next/image";
+
+import endingGuide from "@/components/ending-guide1.json";
 
 const questions = questionsData.questions;
 
@@ -19,6 +22,8 @@ interface QuestionHistory {
 }
 
 export default function LearnSession() {
+    const router = useRouter();
+
     // --- Learn Page State ---
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [maxIndexReached, setMaxIndexReached] = useState<number>(0);
@@ -32,6 +37,11 @@ export default function LearnSession() {
     // UX State
     const [consecutiveCorrect, setConsecutiveCorrect] = useState<number>(0);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
+    const [alertType, setAlertType] = useState<'error' | 'warning'>('error');
+
+    // Timer State (60s = 1m) [TESTING]
+    const [timeLeft, setTimeLeft] = useState<number>(60);
+
 
     const [history, setHistory] = useState<Record<number, QuestionHistory>>({});
     const [lessonComplete, setLessonComplete] = useState<boolean>(false);
@@ -48,10 +58,18 @@ export default function LearnSession() {
 
     // --- Helpers ---
 
-    const showAlert = (msg: string) => {
+    const showAlert = (msg: string, type: 'error' | 'warning' = 'error') => {
         setAlertMessage(msg);
+        setAlertType(type);
         setTimeout(() => setAlertMessage(null), 3000);
     };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
 
     const callChatbotAPI = async (messages: Message[], context?: any) => { // context: extra info about the learning state
         setIsChatLoading(true);
@@ -72,6 +90,34 @@ export default function LearnSession() {
             setIsChatLoading(false);
         }
     };
+
+    // --- Effects (Timer) ---
+    useEffect(() => {
+        if (lessonComplete) return;
+
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [lessonComplete]);
+
+    useEffect(() => {
+        if (timeLeft === 30) {
+            showAlert("30 seconds left!", 'warning');
+        } else if (timeLeft === 10) {
+            showAlert("10 seconds left!", 'warning');
+        } else if (timeLeft === 0 && !lessonComplete) {
+            // TIME OVER -> Force Post-Survey
+            setLessonComplete(true);
+        }
+    }, [timeLeft, lessonComplete]);
 
     // --- Effects (Learn Page) ---
 
@@ -291,16 +337,50 @@ export default function LearnSession() {
         await callChatbotAPI([...chatMessages, newMsg], nextContext);
     };
 
+    const handlePostSurveyComplete = () => {
+        router.push('/');
+    };
 
-    // --- RENDER: LESSON COMPLETE ---
+
+    // --- RENDER: LESSON COMPLETE (POST-SURVEY) ---
     if (lessonComplete) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md rounded-3xl bg-white p-10 shadow-2xl">
-                    <div className="mb-6 flex justify-center"><div className="rounded-full bg-green-100 p-4 text-green-600"><CheckCircle size={64} /></div></div>
-                    <h1 className="mb-4 text-3xl font-bold text-slate-800">Lesson Complete!</h1>
-                    <p className="mb-8 text-slate-600">You've completed the reading comprehension.</p>
-                    <Link href="/" className="rounded-xl bg-slate-900 py-3 px-6 font-semibold text-white hover:bg-slate-800">Back to Home</Link>
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-[95%] md:w-[80%] lg:w-[60%] bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col h-[90vh]"
+                >
+                    <div className="bg-slate-900 p-6 text-white shrink-0">
+                        <h1 className="text-2xl font-bold leading-tight">{endingGuide.title}</h1>
+                    </div>
+
+                    <div className="flex-1 flex flex-col overflow-y-auto">
+                        <div className="p-8 space-y-6">
+                            {endingGuide.sections.map((section, idx) => (
+                                <p key={idx} className="text-slate-700 leading-relaxed whitespace-pre-line text-lg">
+                                    {section.text}
+                                </p>
+                            ))}
+                            <div className="w-full border-2 border-slate-100 rounded-2xl overflow-hidden bg-white">
+                                <iframe
+                                    src="https://snuss1.qualtrics.com/jfe/form/SV_0lA998ZZ6jUCZE2"
+                                    className="w-full h-[600px] md:h-[500px]"
+                                    frameBorder="0"
+                                    title="Post Survey"
+                                ></iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
+                        <button
+                            onClick={handlePostSurveyComplete}
+                            className="flex items-center gap-2 px-8 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg transition-transform active:scale-95"
+                        >
+                            Next <ArrowRight size={20} />
+                        </button>
+                    </div>
                 </motion.div>
             </div>
         );
@@ -319,7 +399,8 @@ export default function LearnSession() {
                         initial={{ opacity: 0, y: -50, x: "-50%" }}
                         animate={{ opacity: 1, y: 0, x: "-50%" }}
                         exit={{ opacity: 0, y: -20, x: "-50%" }}
-                        className="fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full bg-red-500 px-6 py-3 text-white shadow-xl"
+                        className={`fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-xl ${alertType === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
                     >
                         <AlertCircle size={20} />
                         <span className="font-medium">{alertMessage}</span>
@@ -333,7 +414,16 @@ export default function LearnSession() {
                 <Link href="/" className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-white/50 hover:text-slate-800">
                     <ArrowLeft size={16} /> Home
                 </Link>
-                <div className="text-sm font-bold text-slate-400">Question {currentIndex + 1} of {questions.length}</div>
+
+                <div className="flex items-center gap-4">
+                    {/* Timer Badge */}
+                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full font-bold text-sm ${timeLeft <= 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                        <Clock size={16} />
+                        <span>{formatTime(timeLeft)}</span>
+                    </div>
+                    <div className="text-sm font-bold text-slate-400">Question {currentIndex + 1} of {questions.length}</div>
+                </div>
             </div>
 
             {/* Content Grid */}
@@ -415,6 +505,7 @@ export default function LearnSession() {
                                             >
                                                 <div className="flex items-center justify-between gap-3">
                                                     <span className="shrink-0 font-bold text-slate-400">{key}</span>
+                                                    // @ts-ignore
                                                     <span className="flex-1">{text}</span>
 
                                                     {/* Success Icon */}
