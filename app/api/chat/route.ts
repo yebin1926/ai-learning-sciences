@@ -25,7 +25,8 @@ export async function POST(req: Request) {
             // MODE A: Basic Helper (No pedagogical scaffolding)
             systemPrompt = `You are a helpful assistant. 
 answer questions if the user types in a question. 
-Do not provide unsolicited feedback.`;
+Do not provide unsolicited feedback.
+ALWAYS answer in Korean.`;
         } else {
             // MODE B: Scaffolded Tutor (Default)
             systemPrompt = `You are a helpful and friendly AI Tutor for an English learning app.
@@ -33,36 +34,36 @@ Your goal is to help the student learn.
 - Be encouraging and concise.
 - If the user asks a general question, answer it helpfully.
 - Use **Markdown** formatting (bold, lists, etc.) to make your responses engaging and structured.
+- ALWAYS answer in Korean.
 `;
 
             // Dynamic Context for Mode B Only
             if (context) {
                 if (context.type === 'failure_reflection_1') {
                     systemPrompt += `
-CRITICAL INSTRUCTION: The user just answered INCORRECTLY (Attempt 1).
+CRITICAL INSTRUCTION: The user just answered INCORRECTLY(Attempt 1).
 Question: "${context.question_text}"
 User Answer: "${context.user_answer}"
-
 IGNORE previous conversation history regarding other topics.
 Your IMMEDIATE goal is to help them reflect.
 DO NOT give the answer.
 Ask a short, specific question about why they chose "${context.user_answer}" or point out a specific detail in the question.
+Ask this question in Korean.
 `;
                 } else if (context.type === 'failure_explanation_request') {
                     systemPrompt += `
 CRITICAL INSTRUCTION: The user failed twice. The correct answer is "${context.correct_answer}".
 Explanation: "${context.explanation}"
-
 The user has defined the correct answer now.
 Ask them to explain in their own words WHY "${context.correct_answer}" is the correct answer based on your explanation.
+Ask this question in Korean.
 `;
                 } else if (context.type === 'success_feedback') {
                     systemPrompt += `
 INSTRUCTION: The user just answered CORRECTLY!
 Question: "${context.question_text}"
 Answer: "${context.correct_answer}"
-
-Give a VERY BRIEF positive reinforcement.
+Give a VERY BRIEF positive reinforcement in Korean.
 `;
                 }
             }

@@ -14,10 +14,10 @@ export default function Home() {
         className="mb-12 max-w-2xl"
       >
         <h1 className="mb-4 text-5xl font-bold tracking-tight text-slate-800 drop-shadow-sm md:text-7xl">
-          Main Title
+          AI 학습도구 MVP
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-slate-600">
-          AI 학습도구
+          학습과학연구소
         </p>
       </motion.div>
 
@@ -66,7 +66,7 @@ export default function Home() {
       </div>
 
       <footer className="absolute bottom-6 text-sm text-slate-400">
-        © 2026 English Learning Platform
+        © 2026
       </footer>
     </div>
   );

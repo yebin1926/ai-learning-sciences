@@ -45,7 +45,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
     const [alertType, setAlertType] = useState<'error' | 'warning'>('error');
 
     // Timer State (60s = 1m) [TESTING]
-    const [timeLeft, setTimeLeft] = useState<number>(60);
+    const [timeLeft, setTimeLeft] = useState<number>(900);
     const [hasLogged, setHasLogged] = useState<boolean>(false);
 
 
@@ -54,7 +54,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
 
     // Chatbot State
     const [chatMessages, setChatMessages] = useState<Message[]>([
-        { id: "intro", role: "bot", text: "Hi! I'm here to help you reflect on your learning. You can ask me questions anytime!" }
+        { id: "intro", role: "bot", text: "안녕하세요! 학습하시다가 궁금한 점이 생기면 언제든 물어봐주세요!" }
     ]);
     const [reflectionRequired, setReflectionRequired] = useState<boolean>(false);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
@@ -599,7 +599,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                         onSendMessage={handleUserMessage}
                         inputEnabled={!isChatLoading}
                         isLoading={isChatLoading}
-                        placeholder={reflectionRequired ? "Please answer the tutor's question..." : "Ask me anything..."}
+                        placeholder={reflectionRequired ? "튜터의 질문에 먼저 대답해주세요..." : "무엇이든 물어보세요..."}
                         className="h-full"
                     />
                 </div>

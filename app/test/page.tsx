@@ -33,7 +33,7 @@ export default function TestPage() {
     const [alertType, setAlertType] = useState<'error' | 'warning'>('error');
 
     // Timer State (60s = 1m) [TESTING]
-    const [timeLeft, setTimeLeft] = useState<number>(60);
+    const [timeLeft, setTimeLeft] = useState<number>(600);
     const [hasLogged, setHasLogged] = useState<boolean>(false);
 
     // --- Helpers ---
@@ -329,11 +329,30 @@ export default function TestPage() {
                     <h1 className="text-4xl font-bold text-slate-800">Knowledge Check</h1>
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-8 shadow-sm backdrop-blur-md">
+                <div className="overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-8 shadow-sm backdrop-blur-md ">
                     <h3 className="mb-6 text-xl font-semibold text-slate-800">
-                        이전 지문이 어떤 내용이었는지 최대한 기억나는 만큼 작성해주세요 (임시 질문).
+                        지문을 다시 보지 않고, 지문의 핵심 내용을 떠올려 간단한 설명문을 작성하세요.
+                        작성 시 다음의 사항을 포함하여 서술하십시오.
                     </h3>
-
+                    <h3 className="text-lg text-slate-800 py-1">
+                        1. Conventional agriculture가 지니는 장점
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        2. Conventional agriculture에 대해 제기되는 주요 비판
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        3. Organic farming에 대한 환경운동가들의 인식
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        4. 과학적 연구 결과가 organic farming의 생산성에 대해 무엇을 보여주는지
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        5. Organic farming과 Conventional agriculture 사이의 trade-off를 필자가 어떻게 설명하며, 그로부터 어떤 결론을 도출하는지
+                    </h3>
+                    <br />
+                    <h3 className="mb-6 text-xl font-semibold text-slate-800">
+                        지문의 핵심 논지를 바탕으로 작성하세요. 영어와 한국어를 자유롭게 섞어 작성해도 됩니다.
+                    </h3>
                     <textarea
                         className="w-full h-96 p-6 rounded-xl border-2 border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none text-lg text-slate-800"
                         style={{ fontFamily: '"Cambria Math", serif', lineHeight: '1.5' }}
