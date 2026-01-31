@@ -9,11 +9,12 @@ export default function LearnPage() {
     const [participantId, setParticipantId] = useState<string>("");
 
     if (showGuide) {
-        return <GuideOverlay onComplete={(id) => {
+        return <GuideOverlay onComplete={(id: string) => {
             setParticipantId(id);
             setShowGuide(false);
         }} />;
     }
 
+    // Defaulting to Mode 'B' (Experimental/Chatbot) for the main /learn route
     return <LearnSession participantId={participantId} mode="B" />;
 }

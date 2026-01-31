@@ -49,6 +49,7 @@ Your IMMEDIATE goal is to help them reflect.
 DO NOT give the answer.
 Ask a short, specific question about why they chose "${context.user_answer}" or point out a specific detail in the question.
 Ask this question in Korean.
+CRITICAL: END your response with the phrase: "다시 한번 풀어보세요!"
 `;
                 } else if (context.type === 'failure_explanation_request') {
                     systemPrompt += `
@@ -63,7 +64,7 @@ Ask this question in Korean.
 INSTRUCTION: The user just answered CORRECTLY!
 Question: "${context.question_text}"
 Answer: "${context.correct_answer}"
-Give a VERY BRIEF positive reinforcement in Korean.
+Give a VERY BRIEF positive reinforcement in Korean (MAX 1 Sentence).
 `;
                 }
             }
@@ -83,25 +84,31 @@ Give a VERY BRIEF positive reinforcement in Korean.
         // verified: The appended system prompt above should be sufficient.
 
 
-        // 4. API Call
-        const completion = await openai.chat.completions.create({
+        // 4. API Call with Streaming
+        const stream = await openai.chat.completions.create({
             model: model,
             messages: apiMessages,
+            stream: true,
         });
 
-        const assistantMessage = completion.choices[0]?.message;
+        // Create a ReadableStream for the response
+        const encoder = new TextEncoder();
+        const customStream = new ReadableStream({
+            async start(controller) {
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || "";
+                    if (content) {
+                        controller.enqueue(encoder.encode(content));
+                    }
+                }
+                controller.close();
+            },
+        });
 
-        // Logging
-        console.log("CHAT_LOG:", JSON.stringify({
-            timestamp,
-            context_type: context?.type || 'general',
-            model,
-            messages_count: messages.length,
-            response_preview: assistantMessage?.content?.substring(0, 50)
-        }));
-
-        return NextResponse.json({
-            message: assistantMessage,
+        return new NextResponse(customStream, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+            },
         });
 
     } catch (error: any) {

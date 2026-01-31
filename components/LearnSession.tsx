@@ -101,17 +101,35 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
     };
 
 
-    const callChatbotAPI = async (messages: Message[], context?: any) => { // context: extra info about the learning state
+    const callChatbotAPI = async (messages: Message[], context?: any) => {
         setIsChatLoading(true);
+        const newBotMsgId = Date.now().toString();
+        // Optimistically add an empty bot message to stream into
+        setChatMessages(prev => [...prev, { id: newBotMsgId, role: "bot", text: "" }]);
+
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages, context, mode }), // Pass mode
+                body: JSON.stringify({ messages, context, mode }),
             });
-            const data = await response.json();
-            if (data.message) {
-                setChatMessages(prev => [...prev, { id: Date.now().toString(), role: "bot", text: data.message.content }]);
+
+            if (!response.body) throw new Error("No response body");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let done = false;
+            let fullText = "";
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                const chunkValue = decoder.decode(value, { stream: true });
+                fullText += chunkValue;
+
+                setChatMessages(prev => prev.map(msg =>
+                    msg.id === newBotMsgId ? { ...msg, text: fullText } : msg
+                ));
             }
         } catch (error) {
             console.error("Chat API Error:", error);
@@ -170,10 +188,11 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
     }, [attemptState, isCorrect]);
 
     useEffect(() => {
+        if (mode === 'A') return; // Mode A never requires reflection
         if (isAnswered && !isCorrect) {
             setReflectionRequired(true);
         }
-    }, [isAnswered, isCorrect]);
+    }, [isAnswered, isCorrect, mode]);
 
     useEffect(() => {
         const savedState = history[currentIndex];
@@ -244,18 +263,15 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
 
             if (currentIndex >= maxIndexReached) setMaxIndexReached(currentIndex + 1);
 
-            if (newStreak >= 2) {
-                console.log("Streak >= 2");
-                if (mode === 'B') {
-                    console.log("[L171] Calling Chatbot: Success Feedback");
-                    callChatbotAPI([], {
-                        type: 'success_feedback',
-                        question_text: currentQuestion.question,
-                        correct_answer: currentQuestion.correct_answer
-                    });
-                }
-                setConsecutiveCorrect(0);
+            if (mode === 'B') {
+                console.log("[L171] Calling Chatbot: Success Feedback (Every Correct Answer)");
+                callChatbotAPI([], {
+                    type: 'success_feedback',
+                    question_text: currentQuestion.question,
+                    correct_answer: currentQuestion.correct_answer
+                });
             }
+            setConsecutiveCorrect(0); // Reset or keep unused, logic simplified
 
         } else {
             // INCORRECT
@@ -277,6 +293,23 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                         correct_answer: currentQuestion.correct_answer,
                         explanation: "Review the passage carefully."
                     });
+                } else {
+                    // Mode A: NO RETRIES on fail. Treat as completed (failed).
+                    console.log("[Mode A] 1st Try Fail -> Mark Completed (Failed)");
+                    setAttemptState('completed'); // Mark as done so they can proceed
+                    setIsAnswered(true);
+                    setIsCorrect(false);
+                    // Update history to finalize this question state
+                    setHistory(prev => ({
+                        ...prev,
+                        [currentIndex]: {
+                            selectedOption: optionKey,
+                            isCorrect: false,
+                            isAnswered: true,
+                            attemptState: 'completed'
+                        }
+                    }));
+                    if (currentIndex >= maxIndexReached) setMaxIndexReached(currentIndex + 1);
                 }
             } else if (attemptState === 'retrying') {
                 // Second Fail -> LOGICALLY FAIL
@@ -322,7 +355,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
             showAlert("Please wait for the tutor.");
             return;
         }
-        if (reflectionRequired) {
+        if (mode === 'B' && reflectionRequired) { // Only block in Mode B
             showAlert("Please answer the tutor's question first!");
             return;
         }
@@ -427,7 +460,10 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
         );
     }
 
-    const canProceed = (currentIndex < maxIndexReached) || ((isAnswered || attemptState === 'completed') && !reflectionRequired);
+    const canProceed = mode === 'A'
+        ? (currentIndex < maxIndexReached || isAnswered || attemptState === 'completed') // Mode A: Simple gating
+        : (currentIndex < maxIndexReached) || ((isAnswered || attemptState === 'completed') && !reflectionRequired); // Mode B: Reflection gating
+
     const canGoBack = currentIndex > 0;
 
     return (
@@ -518,8 +554,9 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                                                     // USER WON -> ALL GREEN
                                                     style += " border-green-500 bg-green-50 text-green-700";
                                                 } else {
-                                                    // USER LOST -> REVEAL (NO bg color to avoid 'selected' confusion)
-                                                    style += " border-slate-300 bg-white text-slate-500 opacity-60"; // Neutral
+                                                    // USER LOST -> REVEAL
+                                                    // Change: Show correct answer in GREEN even if they failed
+                                                    style += " border-green-500 bg-green-50 text-green-700";
                                                 }
                                             } else if (isSelected && !isCorrect) {
                                                 // WRONG CHOICE
