@@ -1,208 +1,381 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle, XCircle, ArrowLeft, Clock, AlertCircle, ArrowRight, Home } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-interface Question {
-    id: number;
-    question: string;
-    options: string[];
-    answer: string;
-}
+// Data Imports
+import testStartGuide from "@/components/test-starting-guide.json";
+import testEndGuide from "@/components/test-ending-guide.json";
 
-const questions: Question[] = [
-    {
-        id: 1,
-        question: "Which of these is a synonym for 'Happy'?",
-        options: ["Sad", "Joyful", "Angry", "Tired"],
-        answer: "Joyful",
-    },
-    {
-        id: 2,
-        question: "Identify the noun in the sentence: 'The cat sleeps.'",
-        options: ["The", "Cat", "Sleeps", "Deeply"],
-        answer: "Cat",
-    },
-    {
-        id: 3,
-        question: "Who wrote 'Romeo and Juliet'?",
-        options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
-        answer: "William Shakespeare",
-    },
-    {
-        id: 4,
-        question: "What is the past tense of 'Run'?",
-        options: ["Running", "Ran", "Runned", "Runs"],
-        answer: "Ran",
-    },
-    {
-        id: 5,
-        question: "Complete the proverb: 'Better late than...'",
-        options: ["Early", "Never", "Ever", "Now"],
-        answer: "Never",
-    },
-];
-
-interface SelectedAnswers {
-    [key: number]: string;
-}
+type TestStage = 'intro' | 'test' | 'outro';
 
 export default function TestPage() {
-    const [selectedAnswers, setSelectedAnswers] = useState<SelectedAnswers>({});
-    const [submitted, setSubmitted] = useState<boolean>(false);
-    const [score, setScore] = useState<number>(0);
+    const router = useRouter();
 
-    const handleOptionSelect = (questionId: number, option: string) => {
-        if (submitted) return;
-        setSelectedAnswers((prev) => ({ ...prev, [questionId]: option }));
+    // Stage Management
+    const [stage, setStage] = useState<TestStage>('intro');
+
+    // Data State
+    const [participantId, setParticipantId] = useState<string>("");
+    const [age, setAge] = useState<string>("");
+    const [gender, setGender] = useState<string>("");
+    const [major, setMajor] = useState<string>("");
+
+    // Test State
+    const [essayAnswer, setEssayAnswer] = useState<string>("");
+    const [submitted, setSubmitted] = useState<boolean>(false);
+
+    // UX State (Alerts)
+    const [alertMessage, setAlertMessage] = useState<string | null>(null);
+    const [alertType, setAlertType] = useState<'error' | 'warning'>('error');
+
+    // Timer State (60s = 1m) [TESTING]
+    const [timeLeft, setTimeLeft] = useState<number>(600);
+    const [hasLogged, setHasLogged] = useState<boolean>(false);
+
+    // --- Helpers ---
+    const showAlert = (msg: string, type: 'error' | 'warning' = 'error') => {
+        setAlertMessage(msg);
+        setAlertType(type);
+        setTimeout(() => setAlertMessage(null), 3000);
     };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const logTestData = async () => {
+        if (!participantId) return; // Should allow finish regardless? Maybe warn.
+        if (hasLogged) return;
+        setHasLogged(true);
+
+        try {
+            await fetch('/api/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participantId,
+                    type: 'test',
+                    data: {
+                        essayAnswer,
+                        demographics: { age, gender, major },
+                        completedAt: new Date().toISOString()
+                    }
+                })
+            });
+        } catch (error) {
+            console.error("Failed to log test session:", error);
+        }
+    };
+
+
+    // --- Effects (Timer - Only runs in 'test' stage) ---
+    useEffect(() => {
+        if (stage !== 'test' || submitted) return;
+
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [stage, submitted]);
+
+    useEffect(() => {
+        if (stage !== 'test') return;
+
+        if (timeLeft === 30) {
+            showAlert("30 seconds left!", 'warning');
+        } else if (timeLeft === 10) {
+            showAlert("10 seconds left!", 'warning');
+        } else if (timeLeft === 0 && !submitted) {
+            // TIME OVER -> Force Submit & End
+            handleSubmit();
+        }
+    }, [timeLeft, submitted, stage]);
+
+
+    // --- Handlers ---
 
     const handleSubmit = () => {
-        let currentScore = 0;
-        questions.forEach((q) => {
-            if (selectedAnswers[q.id] === q.answer) {
-                currentScore++;
-            }
-        });
-        setScore(currentScore);
+        if (submitted) return;
         setSubmitted(true);
+        // Move to Outro
+        setStage('outro');
     };
 
+    const handleIntroNext = () => {
+        if (!participantId.trim()) {
+            showAlert("참여자 식별번호를 입력해주세요.");
+            return;
+        }
+        setStage('test');
+    };
+
+    const handleGoHome = async () => {
+        if (!age || !gender || !major) {
+            showAlert("모든 정보를 입력해주세요.");
+            return;
+        }
+        await logTestData();
+        router.push('/');
+    };
+
+    // --- RENDERING ---
+
+    // 1. INTRO GUIDE
+    if (stage === 'intro') {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-[95%] md:w-[80%] lg:w-[60%] bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+                >
+                    <div className="bg-slate-900 p-8 text-white">
+                        <h1 className="text-2xl font-bold leading-tight">{testStartGuide.title}</h1>
+                    </div>
+                    <div className="p-8 overflow-y-auto space-y-8 flex-1">
+                        {testStartGuide.sections.map((section, idx) => (
+                            <p key={idx} className="text-slate-700 leading-relaxed whitespace-pre-line text-lg">
+                                {section.text}
+                            </p>
+                        ))}
+                        {/* PARTICIPANT ID INPUT */}
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mt-4">
+                            <label className="block text-lg font-bold text-slate-800 mb-2">
+                                참여자 식별번호를 다시 적어주세요.
+                            </label>
+                            <input
+                                type="text"
+                                value={participantId}
+                                onChange={(e) => setParticipantId(e.target.value)}
+                                placeholder="예: P101"
+                                className="w-full p-4 rounded-xl border-2 border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-lg outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* ALERT TOAST for Intro */}
+                    <AnimatePresence>
+                        {alertMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -50, x: "-50%" }}
+                                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                                exit={{ opacity: 0, y: -20, x: "-50%" }}
+                                className={`fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-xl bg-red-500`}
+                            >
+                                <AlertCircle size={20} />
+                                <span className="font-medium">{alertMessage}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between shrink-0">
+                        <Link href="/" className="px-6 py-3 rounded-xl border-2 border-slate-300 text-slate-600 font-bold hover:bg-slate-100 transition-colors flex items-center gap-2">
+                            <ArrowLeft size={20} /> Back
+                        </Link>
+                        <button
+                            onClick={handleIntroNext}
+                            className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        >
+                            Next <ArrowRight size={20} />
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
+    // 3. OUTRO GUIDE
+    if (stage === 'outro') {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-[95%] md:w-[80%] lg:w-[60%] bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+                >
+                    <div className="bg-slate-900 p-8 text-white">
+                        <h1 className="text-2xl font-bold leading-tight">{testEndGuide.title}</h1>
+                    </div>
+                    <div className="p-8 overflow-y-auto space-y-6 flex-1">
+                        {testEndGuide.sections.map((section, idx) => (
+                            <p key={idx} className="text-slate-700 leading-relaxed whitespace-pre-line text-lg">
+                                {section.text}
+                            </p>
+                        ))}
+
+                        {/* DEMOGRAPHICS FORM */}
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mt-4 space-y-4">
+                            <h3 className="font-bold text-slate-900 border-b pb-2 mb-4">인구통계학적 정보</h3>
+
+                            {/* Age */}
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-2">나이 (Age)</label>
+                                <input
+                                    type="number"
+                                    value={age}
+                                    onChange={(e) => setAge(e.target.value)}
+                                    placeholder="만 나이 입력 (숫자만)"
+                                    className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-100 outline-none"
+                                />
+                            </div>
+
+                            {/* Gender */}
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-2">성별 (Gender)</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="gender" value="남" checked={gender === "남"} onChange={(e) => setGender(e.target.value)} className="w-5 h-5 text-blue-600" />
+                                        <span>남성</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="gender" value="여" checked={gender === "여"} onChange={(e) => setGender(e.target.value)} className="w-5 h-5 text-blue-600" />
+                                        <span>여성</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Major */}
+                            <div>
+                                <label className="block font-bold text-slate-700 mb-2">전공 (Major)</label>
+                                <input
+                                    type="text"
+                                    value={major}
+                                    onChange={(e) => setMajor(e.target.value)}
+                                    placeholder="전공 입력"
+                                    className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-100 outline-none"
+                                />
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* ALERT TOAST for Outro */}
+                    <AnimatePresence>
+                        {alertMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -50, x: "-50%" }}
+                                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                                exit={{ opacity: 0, y: -20, x: "-50%" }}
+                                className={`fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-xl bg-red-500`}
+                            >
+                                <AlertCircle size={20} />
+                                <span className="font-medium">{alertMessage}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
+                        <button
+                            onClick={handleGoHome}
+                            className="px-8 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        >
+                            Go Home <Home size={20} />
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
+    // 2. TEST SESSION (Default)
     return (
-        <div className="min-h-screen p-6 pb-20 md:p-12">
-            <Link
-                href="/"
-                className="mb-8 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-white/50 hover:text-slate-800"
-            >
-                <ArrowLeft size={16} /> Back to Home
-            </Link>
+        <div className="min-h-screen p-6 pb-20 md:p-12 relative">
+            {/* ALERT TOAST */}
+            <AnimatePresence>
+                {alertMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50, x: "-50%" }}
+                        animate={{ opacity: 1, y: 0, x: "-50%" }}
+                        exit={{ opacity: 0, y: -20, x: "-50%" }}
+                        className={`fixed top-10 left-1/2 z-50 flex items-center gap-2 rounded-full px-6 py-3 text-white shadow-xl ${alertType === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                    >
+                        <AlertCircle size={20} />
+                        <span className="font-medium">{alertMessage}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <div className="flex items-center justify-between mb-8">
+                <div className="text-sm font-bold text-slate-400">Assessment</div>
+
+                {/* Timer Badge */}
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full font-bold text-sm ${timeLeft <= 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                    <Clock size={16} />
+                    <span>{formatTime(timeLeft)}</span>
+                </div>
+            </div>
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mx-auto max-w-3xl"
+                className="mx-auto max-w-4xl"
             >
                 <div className="mb-10 text-center">
                     <h1 className="text-4xl font-bold text-slate-800">Knowledge Check</h1>
-                    <p className="mt-2 text-slate-600">
-                        Answer the 5 questions below to see how well you know English!
-                    </p>
                 </div>
 
-                <div className="space-y-6">
-                    {questions.map((q, index) => (
-                        <motion.div
-                            key={q.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`overflow-hidden rounded-2xl border bg-white/60 p-6 shadow-sm backdrop-blur-md ${submitted
-                                    ? selectedAnswers[q.id] === q.answer
-                                        ? "border-green-200 bg-green-50/50"
-                                        : "border-pink-200 bg-pink-50/50"
-                                    : "border-white/40"
-                                }`}
-                        >
-                            <h3 className="mb-4 text-xl font-semibold text-slate-800">
-                                <span className="mr-2 text-slate-400">#{index + 1}</span>
-                                {q.question}
-                            </h3>
-
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {q.options.map((option) => {
-                                    const isSelected = selectedAnswers[q.id] === option;
-                                    const isCorrect = q.answer === option;
-                                    const showResult = submitted;
-
-                                    let buttonStyle =
-                                        "relative flex items-center justify-between rounded-xl border p-4 text-left font-medium transition-all hover:shadow-md";
-
-                                    if (showResult) {
-                                        if (isCorrect) {
-                                            buttonStyle += " border-green-400 bg-green-100 text-green-800";
-                                        } else if (isSelected) {
-                                            buttonStyle += " border-red-300 bg-red-100 text-red-800";
-                                        } else {
-                                            buttonStyle += " border-slate-200 bg-white/40 text-slate-400 opacity-60";
-                                        }
-                                    } else {
-                                        if (isSelected) {
-                                            buttonStyle +=
-                                                " border-blue-400/50 bg-blue-100 text-blue-900 shadow-sm";
-                                        } else {
-                                            buttonStyle +=
-                                                " border-slate-200 bg-white/40 text-slate-700 hover:border-blue-300 hover:bg-blue-50";
-                                        }
-                                    }
-
-                                    return (
-                                        <button
-                                            key={option}
-                                            onClick={() => handleOptionSelect(q.id, option)}
-                                            disabled={submitted}
-                                            className={buttonStyle}
-                                        >
-                                            <span>{option}</span>
-                                            {showResult && isCorrect && (
-                                                <CheckCircle size={20} className="text-green-600" />
-                                            )}
-                                            {showResult && isSelected && !isCorrect && (
-                                                <XCircle size={20} className="text-red-500" />
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </motion.div>
-                    ))}
+                <div className="overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-8 shadow-sm backdrop-blur-md ">
+                    <h3 className="mb-6 text-xl font-semibold text-slate-800">
+                        지문을 다시 보지 않고, 지문의 핵심 내용을 떠올려 간단한 설명문을 작성하세요.
+                        작성 시 다음의 사항을 포함하여 서술하십시오.
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        1. Conventional agriculture가 지니는 장점
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        2. Conventional agriculture에 대해 제기되는 주요 비판
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        3. Organic farming에 대한 환경운동가들의 인식
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        4. 과학적 연구 결과가 organic farming의 생산성에 대해 무엇을 보여주는지
+                    </h3>
+                    <h3 className="text-lg text-slate-800 py-1">
+                        5. Organic farming과 Conventional agriculture 사이의 trade-off를 필자가 어떻게 설명하며, 그로부터 어떤 결론을 도출하는지
+                    </h3>
+                    <br />
+                    <h3 className="mb-6 text-xl font-semibold text-slate-800">
+                        지문의 핵심 논지를 바탕으로 작성하세요. 영어와 한국어를 자유롭게 섞어 작성해도 됩니다.
+                    </h3>
+                    <textarea
+                        className="w-full h-96 p-6 rounded-xl border-2 border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none text-lg text-slate-800"
+                        style={{ fontFamily: '"Cambria Math", serif', lineHeight: '1.5' }}
+                        placeholder="이곳에 답변을 작성해주세요..."
+                        value={essayAnswer}
+                        onChange={(e) => setEssayAnswer(e.target.value)}
+                        disabled={submitted}
+                    />
                 </div>
 
-                {!submitted ? (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="mt-10 flex justify-center"
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-10 flex justify-center"
+                >
+                    <button
+                        onClick={handleSubmit}
+                        disabled={essayAnswer.trim().length === 0}
+                        className="rounded-2xl bg-slate-900 px-10 py-4 text-lg font-bold text-white shadow-xl transition-transform hover:scale-105 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <button
-                            onClick={handleSubmit}
-                            disabled={Object.keys(selectedAnswers).length < questions.length}
-                            className="rounded-2xl bg-slate-900 px-10 py-4 text-lg font-bold text-white shadow-xl transition-transform hover:scale-105 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            Submit Answers
-                        </button>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="mt-10 rounded-3xl bg-white p-8 text-center shadow-xl ring-1 ring-slate-100"
-                    >
-                        <h2 className="text-3xl font-bold text-slate-800">
-                            You scored {score} out of {questions.length}
-                        </h2>
-                        <div className="mt-6 flex justify-center gap-4">
-                            <button
-                                onClick={() => {
-                                    setSubmitted(false);
-                                    setSelectedAnswers({});
-                                    setScore(0);
-                                    window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                                className="rounded-xl border-2 border-slate-200 px-6 py-3 font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                            >
-                                Try Again
-                            </button>
-                            <Link
-                                href="/"
-                                className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
-                            >
-                                Go Home
-                            </Link>
-                        </div>
-                    </motion.div>
-                )}
+                        Submit Answer
+                    </button>
+                </motion.div>
             </motion.div>
         </div>
     );

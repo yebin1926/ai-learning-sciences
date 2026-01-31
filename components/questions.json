@@ -1,0 +1,77 @@
+{
+    "passage_id": "organic_vs_conventional_agriculture",
+    "questions": [
+        {
+            "id": 1,
+            "question": "According to the passage, a significant attribute of conventional agriculture is its ability to",
+            "options": {
+                "A": "produce a wide variety of fruits and vegetables.",
+                "B": "maximize the output of cultivated land.",
+                "C": "satisfy the dietary needs of the world’s population.",
+                "D": "lessen the necessity of nitrogen in plant growth."
+            },
+            "correct_option": "B",
+            "correct_answer": "maximize the output of cultivated land."
+        },
+        {
+            "id": 2,
+            "question": "Which choice best reflects the perspective of the “environmentalists” (line 27) on conventional agriculture?",
+            "options": {
+                "A": "It produces inferior fruits and vegetables and is detrimental to the environment.",
+                "B": "It is energy efficient and reduces the need to convert wilderness to farmland.",
+                "C": "It is good for the environment only in the short run.",
+                "D": "It depletes critical resources but protects wildlife habitats."
+            },
+            "correct_option": "A",
+            "correct_answer": "It produces inferior fruits and vegetables and is detrimental to the environment."
+        },
+        {
+            "id": 3,
+            "question": "Which statement best expresses a relationship between organic farming and conventional farming that is presented in the passage?",
+            "options": {
+                "A": "Both are equally sustainable, but they differ dramatically in the amount of land they require to produce equivalent yields.",
+                "B": "Both rely on artificial chemicals for pest control, but organic farmers use the chemicals sparingly in conjunction with natural remedies.",
+                "C": "Both use nitrogen to encourage plant growth, but the nitrogen used in conventional farming comes from synthetic sources.",
+                "D": "Both create a substantial amount of nitrogen runoff, but only the type of nitrogen found in fertilizers used in conventional farming can be dangerous."
+            },
+            "correct_option": "C",
+            "correct_answer": "Both use nitrogen to encourage plant growth, but the nitrogen used in conventional farming comes from synthetic sources."
+        },
+        {
+            "id": 4,
+            "question": "According to Foley, an “ideal global agriculture system” (line 80)",
+            "options": {
+                "A": "focuses primarily on yield percentages and global markets.",
+                "B": "considers multiple factors in the selection of farming techniques.",
+                "C": "weighs the economic interests of farmers against the needs of consumers.",
+                "D": "puts the nutritional value of produce first and foremost."
+            },
+            "correct_option": "B",
+            "correct_answer": "considers multiple factors in the selection of farming techniques."
+        },
+        {
+            "id": 5,
+            "question": "Which statement is best supported by the information provided in figure 1?",
+            "options": {
+                "A": "The organic yield as a percentage of conventional yield is greater for vegetables than for fruits.",
+                "B": "The organic yield as a percentage of conventional yield is similar for cereals and all crops.",
+                "C": "The reported number of observations for each crop type exceeds 82.",
+                "D": "The organic yield as a percentage of conventional yield is greater for vegetable crops than it is for oilseed crops."
+            },
+            "correct_option": "B",
+            "correct_answer": "The organic yield as a percentage of conventional yield is similar for cereals and all crops."
+        },
+        {
+            "id": 6,
+            "question": "Which of the following claims is supported by figure 2?",
+            "options": {
+                "A": "Of the organically grown species represented, soybeans have the lowest yield.",
+                "B": "The organically grown maize and barley represented are comparable in their yields to conventionally grown maize and barley.",
+                "C": "Of the organically grown species represented, tomatoes have the highest yield.",
+                "D": "The organically grown species represented have lower yields than their conventionally grown counterparts do."
+            },
+            "correct_option": "D",
+            "correct_answer": "The organically grown species represented have lower yields than their conventionally grown counterparts do."
+        }
+    ]
+}

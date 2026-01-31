@@ -1,0 +1,88 @@
+{
+  "learnSession": {
+    "group": "B",
+    "history": {
+      "0": {
+        "selectedOption": "C",
+        "isCorrect": false,
+        "isAnswered": true,
+        "attemptState": "explanation_pending"
+      },
+      "1": {
+        "selectedOption": "A",
+        "isCorrect": true,
+        "isAnswered": true,
+        "attemptState": "completed"
+      }
+    },
+    "chatMessages": [
+      {
+        "id": "intro",
+        "role": "bot",
+        "text": "Hi! I'm here to help you reflect on your learning. You can ask me questions anytime!"
+      },
+      {
+        "id": "1769807176060",
+        "role": "user",
+        "text": "hi hi hi"
+      },
+      {
+        "id": "1769807180794",
+        "role": "bot",
+        "text": "Hi there! 👋\n\nNice energy — welcome! How would you like to practice today? Here are a few quick options:\n\n- **Conversation practice** (small talk, greetings)\n- **Vocabulary** (learn new words)\n- **Grammar** (short explanations + exercises)\n- **Pronunciation** (tips and examples)\n\nOr I can give you some different ways to say “hi”:\n- Formal: **Hello**, **Good morning**\n- Friendly: **Hi**, **Hey**\n- Casual: **Hey there**, **What's up?**\n- Enthusiastic: **Hi!!!**, **Hey — great to see you!**\n\nReply with one of the options or send a sentence using a greeting, and we’ll continue! 😊"
+      },
+      {
+        "id": "1769807189770",
+        "role": "bot",
+        "text": "Good try — that’s a thoughtful choice. \n\nWhich sentence or phrase in the passage made you think conventional agriculture “lessens the necessity of nitrogen in plant growth”?"
+      },
+      {
+        "id": "1769807197624",
+        "role": "user",
+        "text": "But change the conversation to food, and suddenly efficiency doesn’t look so good."
+      },
+      {
+        "id": "1769807207722",
+        "role": "bot",
+        "text": "Nice sentence — good choice! Here’s a quick breakdown and a few ways to say it differently.\n\nMeaning (simple)\n- The speaker says that when you talk specifically about food, the idea that “efficiency” is good stops being convincing — efficiency seems worse or problematic in that context.\n\nGrammar & structure\n- **But** — signals contrast with the previous idea.\n- **change the conversation to food** — means “if/when the topic becomes food.”\n- **and suddenly** — adds emphasis: the change in judgment is quick or striking.\n- **efficiency doesn’t look so good** — idiomatic: “efficiency appears less favorable.”\n\nParaphrases\n- More formal: “However, when the topic shifts to food, efficiency appears less advantageous.”\n- Simple: “If we talk about food, efficiency starts to look bad.”\n- Neutral: “When we focus on food, efficiency seems problematic.”\n\nVocabulary alternatives\n- suddenly → abruptly, immediately, notably\n- doesn’t look so good → appears less favorable, seems problematic, is called into question\n\nWant to practice? I can:\n- give a short exercise to rewrite the sentence in different tones, or\n- explain how this change affects the argument in a paragraph."
+      },
+      {
+        "id": "1769807223734",
+        "role": "bot",
+        "text": "Good work — here’s a short, clear explanation.\n\n**Why your answer is incorrect**\n- It doesn’t match the passage’s main point. The passage is focused on increasing production from the land already under cultivation, not on whatever idea you gave.\n\n**Why the correct answer is correct**\n- The passage emphasizes raising agricultural productivity per unit area (more output from cultivated land) through methods, improvements, or intensification. That directly supports **\"maximize the output of cultivated land.\"**\n\nNow, please explain in your own words **why \"maximize the output of cultivated land.\"** is the correct answer based on the explanation above."
+      },
+      {
+        "id": "1769807238033",
+        "role": "bot",
+        "text": "Good try — nice thinking!  \n\nWhat in **line 27** makes you say conventional agriculture \"protects wildlife habitats\"? Can you quote the exact word or phrase that supports the idea it *protects* habitats?"
+      },
+      {
+        "id": "1769807259337",
+        "role": "user",
+        "text": "I just guessed it"
+      },
+      {
+        "id": "1769807276224",
+        "role": "bot",
+        "text": "No problem — guessing is a good start!\n\nQuick tips to move from a guess to a strong answer:\n1. Re-read **line 27** carefully.  \n2. Look for keywords that imply protection: **protect / preserve / conserve / spare / reduce conversion / leave land uncultivated** or cause-and-effect phrasing (e.g., “so that” / “thereby” / “which means”).  \n3. Copy the exact word or short phrase from the line and then explain in one sentence why that wording supports “protects wildlife habitats” (connect the phrase to the idea of reducing habitat loss or preserving land).\n\nIf you want, paste line 27 here and I’ll help you pick the exact phrase and write the supporting explanation. You’re doing well — this is exactly the kind of skill that gets easier with practice!"
+      },
+      {
+        "id": "1769807288312",
+        "role": "bot",
+        "text": "Good try — nice effort! Quick question to help you reflect:\n\n- **Which exact line or phrase in the passage made you conclude that organic farmers \"rely on artificial chemicals\" for pest control?**\n\nTry to find the specific sentence that supports that claim."
+      }
+    ],
+    "completedAt": "2026-01-30T21:08:10.155Z",
+    "timestamp": "2026-01-30T21:08:10.174Z"
+  },
+  "testSession": {
+    "essayAnswer": "jkljdklajs\ndjkdljlakdja\na\ndododpfjsopjsdpfs",
+    "demographics": {
+      "age": "21",
+      "gender": "여",
+      "major": "전공"
+    },
+    "completedAt": "2026-01-30T21:08:43.341Z",
+    "timestamp": "2026-01-30T21:08:43.357Z"
+  }
+}
