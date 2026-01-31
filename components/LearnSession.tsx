@@ -103,7 +103,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
 
     const callChatbotAPI = async (messages: Message[], context?: any) => {
         setIsChatLoading(true);
-        const newBotMsgId = Date.now().toString();
+        const newBotMsgId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         // Optimistically add an empty bot message to stream into
         setChatMessages(prev => [...prev, { id: newBotMsgId, role: "bot", text: "" }]);
 
@@ -386,7 +386,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
         if (isChatLoading) return;
         setAlertMessage(null);
 
-        const newMsg: Message = { id: Date.now().toString(), role: "user", text };
+        const newMsg: Message = { id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, role: "user", text };
         setChatMessages(prev => [...prev, newMsg]);
 
         let nextContext = { type: 'general_chat' };

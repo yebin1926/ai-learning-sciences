@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
         // 2. Logging Setup
         const timestamp = new Date().toISOString();
-        const model = "gpt-5-mini"; // or whatever model identifier
+        const model = "gpt-5.1"; // or whatever model identifier
 
         let systemPrompt = "";
 
