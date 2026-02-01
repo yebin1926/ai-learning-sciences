@@ -71,6 +71,7 @@ Correct Answer: "${context.correct_answer}"
 The user cannot retry.
 Explain WHY the user's answer is incorrect and WHY the correct answer is correct.
 Keep it concise and helpful.
+Just for this response only, DO NOT SAY ANYTHING ELSE other than explaining why their choice was incorrect and why the correct answer is correct.
 Answer in Korean.
 `;
         }
