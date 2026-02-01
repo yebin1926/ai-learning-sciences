@@ -310,6 +310,16 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                         }
                     }));
                     if (currentIndex >= maxIndexReached) setMaxIndexReached(currentIndex + 1);
+
+                    // TRIGGER CHATBOT EXPLANATION FOR MODE A
+                    console.log("[Mode A] Calling Chatbot: Failure Explanation");
+                    callChatbotAPI([], {
+                        type: 'mode_a_failure_explanation',
+                        question_text: currentQuestion.question,
+                        user_answer: answerContent,
+                        correct_answer: currentQuestion.correct_answer,
+                        explanation: "Review the passage and explain why the user_answer is incorrect using the subheading '오답인 이유:' and why the correct_answer is correct using the subheading '정답 문장이 맞는 이유:', but keep it short and concise so that it's easy to understand."
+                    });
                 }
             } else if (attemptState === 'retrying') {
                 // Second Fail -> LOGICALLY FAIL
@@ -341,7 +351,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                         question_text: currentQuestion.question,
                         user_answer: answerContent,
                         correct_answer: currentQuestion.correct_answer,
-                        explanation: "Review the passage and explain why the user_answer is incorrect and why the correct_answer is correct, but keep it short and concise so that it's easy to understand."
+                        explanation: "Review the passage and explain why the user_answer is incorrect using the subheading '{incorrect option's letter}가 오답인 이유:' and why the correct_answer is correct using the subheading '{correct option's letter}가 정답인 이유:', but keep it short and concise so that it's easy to understand."
                     });
                 }
             } else {
@@ -513,7 +523,12 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                     <div className="flex-[2] overflow-y-auto rounded-3xl bg-white p-6 shadow-md ring-1 ring-black/5">
                         <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed whitespace-pre-line">
                             <h2 className="text-lg font-bold mb-4 text-slate-900">Passage</h2>
-                            {passage}
+                            <div dangerouslySetInnerHTML={{
+                                __html: passage
+                                    .replace(/environmentalists/g, '<mark class="bg-yellow-200 text-slate-900 font-bold px-1 rounded">environmentalists</mark>')
+                                    .replace(/Environmentalists/g, '<mark class="bg-yellow-200 text-slate-900 font-bold px-1 rounded">Environmentalists</mark>')
+                                    .replace(/ideal global agriculture system/g, '<mark class="bg-yellow-200 text-slate-900 font-bold px-1 rounded">ideal global agriculture system</mark>')
+                            }} />
                             <div className="flex flex-col md:flex-row gap-4 mt-6 items-center justify-center">
                                 <div className="border p-2 rounded-lg"><Image src="/figure1.png" alt="Figure 1" width={450} height={300} className="rounded object-contain" /></div>
                                 <div className="border p-2 rounded-lg"><Image src="/figure2.png" alt="Figure 2" width={450} height={300} className="rounded object-contain" /></div>

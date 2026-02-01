@@ -45,7 +45,7 @@ export default function GuideOverlay({ onComplete }: GuideOverlayProps) {
     };
 
     // Shared container class for consistent width (approx 3/5 on large screens)
-    const containerClass = "w-[95%] md:w-[80%] lg:w-[60%] bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]";
+    const containerClass = "w-[95%] md:w-[80%] lg:w-[80%] bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]";
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
