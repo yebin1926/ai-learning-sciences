@@ -7,7 +7,7 @@ import path from 'path';
 // Helper Types
 type ChatMode = 'A' | 'B';
 interface ChatContext {
-    type: 'failure_reflection_1' | 'failure_explanation_request' | 'success_feedback' | 'general';
+    type: 'failure_reflection_1' | 'failure_explanation_request' | 'success_feedback' | 'general' | 'mode_a_failure_explanation';
     question_text?: string;
     user_answer?: string;
     correct_answer?: string;
@@ -59,6 +59,20 @@ Question: "${context.question_text}"
 Answer: "${context.correct_answer}"
 
 Give a VERY BRIEF positive reinforcement in Korean (MAX 1 Sentence).
+`;
+        }
+    } else if (mode === 'A' && context) {
+        if (context.type === 'mode_a_failure_explanation') {
+            systemPrompt += `
+CRITICAL INSTRUCTION: The user answered INCORRECTLY.
+Question: "${context.question_text}"
+User Answer: "${context.user_answer}"
+Correct Answer: "${context.correct_answer}"
+
+The user cannot retry.
+Explain WHY the user's answer is incorrect and WHY the correct answer is correct.
+Keep it concise and helpful.
+Answer in Korean.
 `;
         }
     }

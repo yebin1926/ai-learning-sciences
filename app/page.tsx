@@ -14,7 +14,7 @@ export default function Home() {
         className="mb-12 max-w-2xl"
       >
         <h1 className="mb-4 text-5xl font-bold tracking-tight text-slate-800 drop-shadow-sm md:text-7xl">
-          AI 학습도구 MVP
+          AI 학습도구
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-slate-600">
           학습과학연구소
