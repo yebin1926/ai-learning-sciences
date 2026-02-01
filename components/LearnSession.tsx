@@ -291,8 +291,8 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                         question_text: currentQuestion.question,
                         user_answer: answerContent,
                         correct_answer: currentQuestion.correct_answer,
-                        explanation: "Review the passage carefully."
-                    });
+                        explanation: "Give them a slight hint (NOT THE ANSWER, NOT AN EASY HINT)."
+                    })
                 } else {
                     // Mode A: NO RETRIES on fail. Treat as completed (failed).
                     console.log("[Mode A] 1st Try Fail -> Mark Completed (Failed)");
@@ -351,7 +351,7 @@ export default function LearnSession({ participantId, mode }: LearnSessionProps)
                         question_text: currentQuestion.question,
                         user_answer: answerContent,
                         correct_answer: currentQuestion.correct_answer,
-                        explanation: "Review the passage and explain why the user_answer is incorrect using the subheading '{incorrect option's letter}가 오답인 이유:' and why the correct_answer is correct using the subheading '{correct option's letter}가 정답인 이유:', but keep it short and concise so that it's easy to understand."
+                        explanation: "Review the passage and explain why the user_answer is incorrect using the subheading '오답인 이유:' and why the correct_answer is correct using the subheading '정답 문장이 맞는 이유:', but keep it short and concise so that it's easy to understand."
                     });
                 }
             } else {

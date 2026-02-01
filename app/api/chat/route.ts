@@ -38,10 +38,10 @@ User Answer: "${context.user_answer}"
 
 IGNORE previous conversation history regarding other topics.
 Your IMMEDIATE goal is to help them reflect.
-DO NOT give the answer.
-Ask a short, specific question about why they chose "${context.user_answer}" or point out a specific detail in the question.
+DO NOT give the answer. But you can give slight hints (NOT A HINT THAT GIVES AWAY THE ANSWER).
+Ask a short, specific question that will make them explain why they chose "${context.user_answer}".
 Ask this question in Korean.
-CRITICAL: END your response with the exact phrase: "다시 한번 풀어보세요!"
+CRITICAL: END your response with the exact phrase: "다시 한번 시도해보세요!"
 `;
         } else if (context.type === 'failure_explanation_request') {
             systemPrompt += `
@@ -49,8 +49,7 @@ CRITICAL INSTRUCTION: The user failed twice. The correct answer is "${context.co
 Explanation: "${context.explanation}"
 
 The user has defined the correct answer now.
-Ask them to explain in their own words WHY "${context.correct_answer}" is the correct answer based on your explanation.
-Ask this question in Korean.
+Respond in Korean.
 `;
         } else if (context.type === 'success_feedback') {
             systemPrompt += `
